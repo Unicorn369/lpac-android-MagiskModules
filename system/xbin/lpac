@@ -1,0 +1,363 @@
+#!/system/bin/sh
+
+Green_font_prefix="\033[32m" && Red_font_prefix="\033[31m" && Red_background_prefix="\033[41;37m" && Blue_background_prefix="\033[44;37m" && Font_color_suffix="\033[0m"
+EID_Info="${Green_font_prefix}[EID]${Font_color_suffix}"
+FREE_Info="${Green_font_prefix}[可用空间]${Font_color_suffix}"
+
+LPAC_Info="${Green_font_prefix}[LPAC]${Font_color_suffix}"
+
+ESIM_Info="${Green_font_prefix}[eSIM]${Font_color_suffix}"
+ICCID_Info="${Green_font_prefix}[ICCID]${Font_color_suffix}"
+
+DL_Info="${Green_font_prefix}[下载成功]${Font_color_suffix}"
+DL_Error="${Red_font_prefix}[下载失败]${Font_color_suffix}"
+
+SW_Info="${Green_font_prefix}[切换成功]${Font_color_suffix}"
+SW_Error="${Red_font_prefix}[切换失败]${Font_color_suffix}"
+
+DE_Info="${Green_font_prefix}[删除成功]${Font_color_suffix}"
+DE_Error="${Red_font_prefix}[删除失败]${Font_color_suffix}"
+
+Error="${Red_font_prefix}[错误]${Font_color_suffix}"
+Tip="${Red_background_prefix}[提示]${Font_color_suffix}"
+
+ESIM_INIT="null"
+
+ESIM_EID="null"
+ESIM_FREE="null"
+
+ESIM_NAME="null"
+ESIM_ICCID="null"
+
+lpac_get_info() {
+  if [ $ESIM_INIT != 1 ]; then
+    LPAC_CACHE=`lpac-hw chip info`
+    if echo "$LPAC_CACHE" | grep -q "eidValue"; then
+      ESIM_INIT=1
+      ESIM_EID=`echo "$LPAC_CACHE" | jq .payload.data.eidValue`
+      ESIM_FREE=`echo "$LPAC_CACHE" | jq .payload.data.EUICCInfo2.extCardResource.freeNonVolatileMemory`
+      lpac_get_enabled
+    fi
+  fi
+}
+
+lpac_get_enabled() {
+  LPAC_CACHE=`lpac-hw profile list`
+  if echo "$LPAC_CACHE" | grep -q "data"; then
+    LPAC_CACHE_TMP=`echo "$LPAC_CACHE" | jq .payload.data`
+    TMPL=`echo "$LPAC_CACHE_TMP" | jq length`
+    #
+    for i in $(seq 1 $TMPL)
+    do
+       NUM=$(($i - 1))
+       LPAC_CACHE_INFO=`echo "$LPAC_CACHE_TMP" | jq .[$NUM].profileState`
+       if [[ $LPAC_CACHE_INFO == '"enabled"' ]]; then
+         ESIM_NAME=`echo "$LPAC_CACHE_TMP" | jq .[$NUM].profileNickname`
+         ESIM_ICCID=`echo "$LPAC_CACHE_TMP" | jq .[$NUM].iccid`
+         if [[ $ESIM_NAME == "null" ]]; then
+           ESIM_NAME=`echo "$LPAC_CACHE_TMP" | jq .[$NUM].profileName`
+         fi
+       fi
+    done
+    #
+  fi
+}
+
+lpac_profile_download() {
+echo -e "请输入LPA代码? [格式为：LPA:1\$AAA\$BBB\$CCC]:"
+read lpa_code
+[ -z "${lpa_code}" ] && echo "你还没有输入LPA代码，请重新输入" && lpac_profile_download
+  LPA=`echo $lpa_code | sed 's/\"//g' | sed "s/'//g"`
+
+echo -e "是否需要手动确认下载? [y/N] :"
+read yn
+  [ -z "${yn}" ] && yn="n"
+  if [[ $yn == [Yy] ]]; then
+    lpac-hw profile download -p -a $LPA
+  else
+    LOG=`echo y | lpac-hw profile download -p -a $LPA`
+    LOG_TMP=`echo "$LOG" | grep '"type":"lpa"'`
+    LOG_LV=`echo "$LOG_TMP" | jq .payload.code`
+    if [[ $LOG_LV != 0 ]]; then
+      LOG_ER=`echo "$LOG_TMP" | jq .payload.data`
+      echo -e "$DL_Error $LOG_ER"
+    else
+      LOG_ER=`echo "$LOG" | grep 'iccid":"' | jq .payload.data.iccid`
+      echo -e "$DL_Info $LOG_ER"
+    fi
+  fi
+
+ESIM_INIT=2
+echo -e "是否还需要下载eSIM? [Y/n] :"
+read yn
+  [ -z "${yn}" ] && yn="y"
+  if [[ $yn == [Yy] ]]; then
+    lpac_profile_download
+  else
+    lpac_menu
+  fi
+}
+
+lpac_profile_list() {
+  LPAC_CACHE=`lpac-hw profile list`
+  if echo "$LPAC_CACHE" | grep -q "data"; then
+    LPAC_CACHE_TMP=`echo "$LPAC_CACHE" | jq .payload.data`
+    TMPL=`echo "$LPAC_CACHE_TMP" | jq length`
+    #
+    for i in $(seq 1 $TMPL)
+    do
+      NUM=$(($i - 1))
+      LPAC_CACHE_INFO=`echo "$LPAC_CACHE_TMP" | jq .[$NUM].profileState`
+      ESIM_NAME_TMP=`echo "$LPAC_CACHE_TMP" | jq .[$NUM].profileNickname`
+      ESIM_ICCID_TMP=`echo "$LPAC_CACHE_TMP" | jq .[$NUM].iccid`
+      if [[ $ESIM_NAME_TMP == "null" ]]; then
+        ESIM_NAME_TMP=`echo "$LPAC_CACHE_TMP" | jq .[$NUM].profileName`
+      fi
+      if [[ $LPAC_CACHE_INFO == '"enabled"' ]]; then
+         echo -e "${Red_background_prefix}—————— $NUM ——————${Font_color_suffix}"
+         echo -e "$ESIM_Info: ${Blue_background_prefix}$ESIM_NAME_TMP${Font_color_suffix}"
+         echo -e "$ICCID_Info: ${Blue_background_prefix}$ESIM_ICCID_TMP${Font_color_suffix}"
+      else
+         echo -e "—————— $NUM ——————"
+         echo -e "$ESIM_Info: $ESIM_NAME_TMP"
+         echo -e "$ICCID_Info: $ESIM_ICCID_TMP"
+      fi
+    done
+    #
+    echo -e "————————————"
+  else
+    echo -e "$Error eSIM读取失败"
+  fi
+}
+
+lpac_profile_switch() {
+  lpac_profile_list
+  echo -e "请输入切换卡的ICCID\n如需取消操作请输 [n]:"
+  read iccid
+  [ -z "${iccid}" ] && iccid="n"
+  if [[ $iccid == [Nn] ]]; then
+    lpac_menu && exit 1
+  fi
+
+  ICCID_NUM=`echo $iccid | sed 's/\"//g' | sed "s/'//g"`
+  LOG=`lpac-hw profile enable $ICCID_NUM`
+  LOG_TMP=`echo "$LOG" | grep '"type":"lpa"'`
+  LOG_LV=`echo "$LOG_TMP" | jq .payload.code`
+  if [[ $LOG_LV != 0 ]]; then
+    LOG_ER=`echo "$LOG_TMP" | jq .payload.data`
+    echo -e "$SW_Error $LOG_ER"
+  else
+    ESIM_INIT=2
+    echo -e "$SW_Info"
+  fi
+  echo -e "$Tip 需要重载SIM卡方可生效。如出现长时间无信号，请尝试${Blue_background_prefix}[插拔SIM卡]${Font_color_suffix}或${Blue_background_prefix}[重启手机]${Font_color_suffix}"
+  lpac_kill
+}
+
+lpac_profile_delete() {
+  lpac_profile_list
+  echo -e "请输入删除卡的ICCID\n如需取消操作请输 [n]:"
+  read iccid
+  [ -z "${iccid}" ] && iccid="n"
+  if [[ $iccid == [Nn] ]]; then
+    lpac_menu && exit 1
+  fi
+
+  ICCID_NUM=`echo $iccid | sed 's/\"//g' | sed "s/'//g"`
+  LOG=`lpac-hw profile delete $ICCID_NUM`
+  LOG_TMP=`echo "$LOG" | grep '"type":"lpa"'`
+  LOG_LV=`echo "$LOG_TMP" | jq .payload.code`
+  if [[ $LOG_LV != 0 ]]; then
+    LOG_ER=`echo "$LOG_TMP" | jq .payload.data`
+    echo -e "$DE_Error $LOG_ER"
+  else
+    ESIM_INIT=2
+    echo -e "$DE_Info"
+  fi
+  lpac_kill
+}
+
+lpac_kill_info() {
+  echo -e "$Tip 如出现长时间无信号、无法上网、无法拨打电话等。重载SIM卡将解决这一问题"
+  lpac_kill
+}
+lpac_kill() {
+  echo -e "是否需要重载SIM卡? [Y/n] :"
+  read yn
+    [ -z "${yn}" ] && yn="y"
+    if [[ $yn == [Yy] ]]; then
+      #echo -e "${LPAC_Info} 命令执行中..."
+      #sleep 6
+      #am broadcast -a android.intent.action.SIM_STATE_CHANGED
+      echo -e "${LPAC_Info} 命令执行中......"
+      sleep 6
+      killall com.android.phone
+      echo -e "${LPAC_Info} 命令执行完毕"
+    else
+      lpac_menu
+  fi
+}
+
+lpac_reboot() {
+echo -e "$Tip 如果出现故障问题，请先执行${Blue_background_prefix}[重载SIM卡]${Font_color_suffix}并重新${Blue_background_prefix}[插拔SIM卡]${Font_color_suffix}。如果这样也无法解决故障问题，重启手机将解决这一问题"
+echo -e "是否需要重启手机? [y/N] :"
+read yn
+  [ -z "${yn}" ] && yn="n"
+  if [[ $yn == [Yy] ]]; then
+    reboot
+  else
+    lpac_menu
+  fi
+}
+
+lpac_help() {
+  echo -e "
+——————————————————————
+lpac [chip|profile|notification] [参数]
+
+-> chip:
+     info             查看eUICC卡片信息
+     defaultsmdp [..] 修改eUICC卡的SM-DP+服务器地址
+     purge            格式化eUICC卡(谨慎操作！)
+示例：
+    【修改SM-DP+】${Blue_background_prefix}lpac chip defaultsmdp 'lpa.ds.gsma.com'${Font_color_suffix}
+
+-> profile:
+     list             查看eUICC配置文件
+     nickname [iccid] [name]
+                      为指定的配置文件设置别名
+     enable [iccid]   启用指定配置文件
+     disable [iccid]  禁用指定配置文件
+     delete [iccid]   删除指定配置文件
+示例：
+    【设置别名】${Blue_background_prefix}lpac profile nickname '898612345678' '中国移动'${Font_color_suffix}
+    【启用配置】${Blue_background_prefix}lpac profile enable '898612345678'${Font_color_suffix}
+
+-> profile download:  下载配置
+     -s               [可选]SM-DP+服务器
+     -m               [可选]激活码
+     -c               [可选]确认码
+     -i               [可选]IMEI
+     -p               [可选]交互式预览模式
+     -a               LPA代码。
+示例：
+    【下载(手动输入)】${Blue_background_prefix}lpac profile download -s rsp.esim.com -m 'QR-AB-CD-E78'${Font_color_suffix}
+    【下载(LPA代码)】${Blue_background_prefix}lpac profile download -a 'LPA:1$rsp.esim.com$QR-AB-CD-E78'${Font_color_suffix}
+
+-> profile discovery: 检测在SM-DS服务器上注册的可用配置文件
+     -s               SM-DS服务器
+     -i               [可选]IMEI
+
+-> notification:
+     list              查看eUICC通知列表
+     process [..] [id] 发送通知
+             -a        发送全部通知
+             -r        自动删除已发送的通知
+     remove [..] [id]  删除通知
+             -a        删除所有通知
+示例：
+    【发送指定通知】${Blue_background_prefix}lpac notification process '11'${Font_color_suffix}
+    【删除所有通知】${Blue_background_prefix}lpac notification remove -a${Font_color_suffix}
+
+——————————————————————
+lpac [a|k|h]
+
+-> a:    简易操作界面
+
+-> k:    重载SIM卡
+
+-> k2:   重载SIM卡(上命令执行错误，可尝试用这)
+
+-> h:    显示此说明界面
+示例：
+    【使用功能】${Blue_background_prefix}lpac a${Font_color_suffix}
+    【重载SIM卡】${Blue_background_prefix}lpac k${Font_color_suffix}
+——————————————————————
+${Tip}
+①默认只读取SIM1，读取SIM2执行：${Blue_background_prefix}UIM_SLOT=2 lpac${Font_color_suffix}
+②因使用LPAC会导致通道占用，引发切换数据无法上网、无法拨打电话、SIM假死等故障。请执行${Blue_background_prefix}[重载SIM卡]${Font_color_suffix}将解除占用
+③使用${Blue_background_prefix}[切换eSIM]${Font_color_suffix}并执行${Blue_background_prefix}[重载SIM卡]${Font_color_suffix}若未生效，请重新${Blue_background_prefix}[插拔SIM卡]${Font_color_suffix}即可解决
+——————————————————————
+  "
+}
+
+lpac_menu() {
+  lpac_get_info
+  #
+  if [[ $ESIM_INIT != "null" ]]; then
+  #
+  echo -e "
+————————————
+  ${Green_font_prefix} 1.${Font_color_suffix} 下载 eSIM
+  ${Green_font_prefix} 2.${Font_color_suffix} 切换 eSIM
+  ${Green_font_prefix} 3.${Font_color_suffix} 删除 eSIM
+————————————
+  ${Green_font_prefix} 4.${Font_color_suffix} 重载 SIM卡
+  ${Green_font_prefix} 5.${Font_color_suffix} 重启手机
+————————————
+  ${Green_font_prefix} 0.${Font_color_suffix} 退出" && echo
+#
+    echo -e "$EID_Info: $ESIM_EID"
+    echo -e "$FREE_Info: $(($ESIM_FREE / 1024)) KiB"
+    if [[ $ESIM_ICCID != "null" ]]; then
+      echo -e "\n"
+      echo -e "$ESIM_Info: $ESIM_NAME"
+      echo -e "$ICCID_Info: $ESIM_ICCID"
+    fi
+#
+  else
+    echo -e "$Error eSIM读取失败！请指定SIM卡或${Blue_background_prefix}[插拔SIM卡]${Font_color_suffix}"
+    echo -e "$Error 默认读取SIM1，如需读取SIM2请执行："
+    echo -e "${Red_background_prefix}UIM_SLOT=2 lpac a${Font_color_suffix}"
+    killall com.android.phone && exit
+  fi
+#
+  echo -e "请输入数字 [0-5]:" && read num
+  case "$num" in
+  1)
+    lpac_profile_download
+    ;;
+  2)
+    lpac_profile_switch
+    ;;
+  3)
+    lpac_profile_delete
+    ;;
+  4)
+    lpac_kill_info
+    ;;
+  5)
+    lpac_reboot
+    ;;
+  0)
+    killall com.android.phone
+    exit
+    ;;
+  *)
+    echo "请输入正确数字 [0-5]"
+    ;;
+  esac
+}
+
+if [[ $UID == "0" || $USER_ID == "0" || `id -u` == "0" ]]; then
+  case "$1" in
+  a)
+    lpac_menu
+    ;;
+  h)
+    lpac_help
+    ;;
+  k)
+    killall com.android.phone
+    ;;
+  k2)
+    am broadcast -a android.intent.action.SIM_STATE_CHANGED
+    ;;
+  *)
+    exec lpac-hw $@
+    ;;
+  esac
+else
+  echo -e "${Red_background_prefix}—————— 请使用root权限执行 ——————${Font_color_suffix}"
+  exit
+fi
