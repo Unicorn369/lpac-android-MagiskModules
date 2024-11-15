@@ -1,6 +1,7 @@
 id=LPAC_Android
 name=lpac for Android
-author=System
+author=Unicorn369
 version=v1.0.0
 versionCode=1
 description=在安卓系统中用使用lpac命令，支持Android 8~13。在终端模拟器中使用root权限执行“lpac h”或“lpac a”即可食用。
+updateJson=https://github.com/Unicorn369/lpac-android-MagiskModules/raw/main/update.json
