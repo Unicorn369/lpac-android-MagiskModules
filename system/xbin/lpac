@@ -147,6 +147,7 @@ lpac_profile_switch() {
     LOG_ER=`echo "$LOG_TMP" | jq .payload.data`
     echo -e "$SW_Error $LOG_ER"
   else
+    sleep 6
     ESIM_INIT=2
     echo -e "$SW_Info"
   fi
@@ -171,6 +172,7 @@ lpac_profile_delete() {
     LOG_ER=`echo "$LOG_TMP" | jq .payload.data`
     echo -e "$DE_Error $LOG_ER"
   else
+    sleep 6
     ESIM_INIT=2
     echo -e "$DE_Info"
   fi
@@ -190,7 +192,6 @@ lpac_kill() {
       #sleep 6
       #am broadcast -a android.intent.action.SIM_STATE_CHANGED
       echo -e "${LPAC_Info} 命令执行中......"
-      sleep 6
       killall com.android.phone
       echo -e "${LPAC_Info} 命令执行完毕"
     else
