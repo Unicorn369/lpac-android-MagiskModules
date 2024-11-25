@@ -5,6 +5,7 @@ EID_Info="${Green_font_prefix}[EID]${Font_color_suffix}"
 FREE_Info="${Green_font_prefix}[可用空间]${Font_color_suffix}"
 
 LPAC_Info="${Green_font_prefix}[LPAC]${Font_color_suffix}"
+LPAC_Error="${Red_font_prefix}[LPAC]${Font_color_suffix}"
 
 ESIM_Info="${Green_font_prefix}[eSIM]${Font_color_suffix}"
 ICCID_Info="${Green_font_prefix}[ICCID]${Font_color_suffix}"
@@ -179,6 +180,33 @@ lpac_profile_delete() {
   lpac_kill
 }
 
+lpac_profile_preview() {
+echo -e "请输入LPA代码? [格式为：LPA:1\$AAA\$BBB\$CCC]:"
+read lpa_code
+[ -z "${lpa_code}" ] && echo "你还没有输入LPA代码，请重新输入" && lpac_profile_download
+  LPA=`echo $lpa_code | sed 's/\"//g' | sed "s/'//g"`
+#
+  LOG=`echo n | lpac-hw profile download -p -a $LPA`
+  if echo "$LOG" | grep -q "iccid"; then
+    ESIM_NAME_TMP=`echo "$LOG" | grep 'iccid":"' | jq .payload.data.profileName`
+    ESIM_ICCID_TMP=`echo "$LOG" | grep 'iccid":"' | jq .payload.data.iccid`
+    echo -e "${LPAC_Info} 有效的LPA，读取到以下信息:"
+    echo -e "$ESIM_Info: $ESIM_NAME_TMP"
+    echo -e "$ICCID_Info: $ESIM_ICCID_TMP\n"
+  else
+    echo -e "${LPAC_Error} 无效的LPA"
+  fi
+#
+echo -e "是否还需要继续使用? [Y/n] :"
+read yn
+  [ -z "${yn}" ] && yn="y"
+  if [[ $yn == [Yy] ]]; then
+    lpac_profile_download
+  else
+    lpac_menu
+  fi
+}
+
 lpac_kill_info() {
   echo -e "$Tip 如出现长时间无信号、无法上网、无法拨打电话等。重载SIM卡将解决这一问题"
   lpac_kill
@@ -293,8 +321,10 @@ lpac_menu() {
   ${Green_font_prefix} 2.${Font_color_suffix} 切换 eSIM
   ${Green_font_prefix} 3.${Font_color_suffix} 删除 eSIM
 ————————————
-  ${Green_font_prefix} 4.${Font_color_suffix} 重载 SIM卡
-  ${Green_font_prefix} 5.${Font_color_suffix} 重启手机
+  ${Green_font_prefix} 4.${Font_color_suffix} LPA预览(测活)
+————————————
+  ${Green_font_prefix} 5.${Font_color_suffix} 重载 SIM卡
+  ${Green_font_prefix} 6.${Font_color_suffix} 重启手机
 ————————————
   ${Green_font_prefix} 0.${Font_color_suffix} 退出" && echo
 #
@@ -313,7 +343,7 @@ lpac_menu() {
     killall com.android.phone && exit
   fi
 #
-  echo -e "请输入数字 [0-5]:" && read num
+  echo -e "请输入数字 [0-6]:" && read num
   case "$num" in
   1)
     lpac_profile_download
@@ -325,9 +355,12 @@ lpac_menu() {
     lpac_profile_delete
     ;;
   4)
-    lpac_kill_info
+    lpac_profile_preview
     ;;
   5)
+    lpac_kill_info
+    ;;
+  6)
     lpac_reboot
     ;;
   0)
@@ -335,7 +368,7 @@ lpac_menu() {
     exit
     ;;
   *)
-    echo "请输入正确数字 [0-5]"
+    echo "请输入正确数字 [0-6]"
     ;;
   esac
 }
