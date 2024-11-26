@@ -7,6 +7,8 @@ FREE_Info="${Green_font_prefix}[可用空间]${Font_color_suffix}"
 LPAC_Info="${Green_font_prefix}[LPAC]${Font_color_suffix}"
 LPAC_Error="${Red_font_prefix}[LPAC]${Font_color_suffix}"
 
+TZ_Info="${Green_font_prefix}[通知类型]${Font_color_suffix}"
+
 ESIM_Info="${Green_font_prefix}[eSIM]${Font_color_suffix}"
 ICCID_Info="${Green_font_prefix}[ICCID]${Font_color_suffix}"
 
@@ -207,6 +209,100 @@ read yn
   fi
 }
 
+lpac_notification_list() {
+  LPAC_CACHE=`lpac-hw notification list`
+  if echo "$LPAC_CACHE" | grep -q "data"; then
+    LPAC_CACHE_TMP=`echo "$LPAC_CACHE" | jq .payload.data`
+    TMPL=`echo "$LPAC_CACHE_TMP" | jq length`
+    #
+    if [[ $TMPL != 0 ]]; then
+      echo -e "———————通知列表———————"
+      for i in $(seq 1 $TMPL)
+      do
+        NUM=$(($i - 1))
+        LPAC_TZ_ID=`echo "$LPAC_CACHE_TMP" | jq .[$NUM].seqNumber`
+        ESIM_TZ_MO=`echo "$LPAC_CACHE_TMP" | jq .[$NUM].profileManagementOperation`
+        ESIM_ICCID_TMP=`echo "$LPAC_CACHE_TMP" | jq .[$NUM].iccid`
+        LPAC_TZ_TYPE="null"
+        echo -e "—————— ID: $LPAC_TZ_ID ——————"
+        if [ $ESIM_TZ_MO == '"install"' ]; then
+          LPAC_TZ_TYPE="已下载"
+        elif [ $ESIM_TZ_MO == '"disable"' ]; then
+          LPAC_TZ_TYPE="已禁用"
+        elif [ $ESIM_TZ_MO == '"enable"' ]; then
+          LPAC_TZ_TYPE="已启用"
+        elif [ $ESIM_TZ_MO == '"delete"' ]; then
+          LPAC_TZ_TYPE="已删除"
+        fi
+        echo -e "$TZ_Info: $LPAC_TZ_TYPE"
+        echo -e "$ICCID_Info: $ESIM_ICCID_TMP"
+      done
+    else
+      echo -e "———————没有通知———————"
+    fi
+    #
+    echo -e "—————————————————————"
+  else
+    echo -e "$Error eSIM读取失败"
+  fi
+}
+
+lpac_notification() {
+  lpac_notification_list
+
+echo -e "请输入通知ID进行操作
+(如果输入“all”则视为删除全部通知):"
+read tzid
+  tzid=`echo $tzid | sed 's/\"//g' | sed "s/'//g"`
+#
+  if [[ $tzid == 'all' ]]; then
+    LOG=`lpac-hw notification remove -a`
+    LOG_TMP=`echo "$LOG" | grep '"type":"lpa"'`
+    LOG_LV=`echo "$LOG_TMP" | jq .payload.code`
+    if [[ $LOG_LV != 0 ]]; then
+      #LOG_ER=`echo "$LOG_TMP" | jq .payload.data`
+      echo -e "${LPAC_Error} 删除失败"
+    else
+      echo -e "${LPAC_Info} 已删除全部通知"
+    fi
+  else
+    echo -e "请输入操作类型，发送: 0 | 删除: 1 "
+    read tzidx
+    if [[ $tzidx == 0 ]]; then
+      LOG=`lpac-hw notification process $tzid`
+      LOG_TMP=`echo "$LOG" | grep '"type":"lpa"'`
+      LOG_LV=`echo "$LOG_TMP" | jq .payload.code`
+      if [[ $LOG_LV != 0 ]]; then
+        LOG_ER=`echo "$LOG_TMP" | jq .payload.data`
+        echo -e "${LPAC_Error} 发送失败 $LOG_ER"
+      else
+        echo -e "${LPAC_Info} 已发送通知"
+      fi
+    elif [[ $tzidx == 1 ]]; then
+      LOG=`lpac-hw notification remove $tzid`
+      LOG_TMP=`echo "$LOG" | grep '"type":"lpa"'`
+      LOG_LV=`echo "$LOG_TMP" | jq .payload.code`
+      if [[ $LOG_LV != 0 ]]; then
+        LOG_ER=`echo "$LOG_TMP" | jq .payload.data`
+        echo -e "${LPAC_Error} 删除失败 $LOG_ER"
+      else
+        echo -e "${LPAC_Info} 已删除通知"
+      fi
+    else
+      echo -e "${LPAC_Error} 输入错误，只能输入“0”或“1”"
+    fi
+  fi
+
+echo -e "是否还需要继续使用? [Y/n] :"
+read yn
+  [ -z "${yn}" ] && yn="y"
+  if [[ $yn == [Yy] ]]; then
+    lpac_notification
+  else
+    lpac_menu
+  fi
+}
+
 lpac_kill_info() {
   echo -e "$Tip 如出现长时间无信号、无法上网、无法拨打电话等。重载SIM卡将解决这一问题"
   lpac_kill
@@ -322,9 +418,10 @@ lpac_menu() {
   ${Green_font_prefix} 3.${Font_color_suffix} 删除 eSIM
 ————————————
   ${Green_font_prefix} 4.${Font_color_suffix} LPA预览(测活)
+  ${Green_font_prefix} 5.${Font_color_suffix} eSIM通知管理
 ————————————
-  ${Green_font_prefix} 5.${Font_color_suffix} 重载 SIM卡
-  ${Green_font_prefix} 6.${Font_color_suffix} 重启手机
+  ${Green_font_prefix} 6.${Font_color_suffix} 重载 SIM卡
+  ${Green_font_prefix} 7.${Font_color_suffix} 重启手机
 ————————————
   ${Green_font_prefix} 0.${Font_color_suffix} 退出" && echo
 #
@@ -343,7 +440,7 @@ lpac_menu() {
     killall com.android.phone && exit
   fi
 #
-  echo -e "请输入数字 [0-6]:" && read num
+  echo -e "请输入数字 [0-7]:" && read num
   case "$num" in
   1)
     lpac_profile_download
@@ -358,9 +455,12 @@ lpac_menu() {
     lpac_profile_preview
     ;;
   5)
-    lpac_kill_info
+    lpac_notification
     ;;
   6)
+    lpac_kill_info
+    ;;
+  7)
     lpac_reboot
     ;;
   0)
@@ -368,7 +468,7 @@ lpac_menu() {
     exit
     ;;
   *)
-    echo "请输入正确数字 [0-6]"
+    echo "请输入正确数字 [0-7]"
     ;;
   esac
 }
