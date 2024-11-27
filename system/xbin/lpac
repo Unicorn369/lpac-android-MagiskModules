@@ -213,7 +213,48 @@ read yn
 }
 
 lpac_profile_nickname() {
-  echo -e "在做了在做了"
+  lpac_profile_list
+  echo -e "请输入需要修改昵称的ICCID\n如需取消操作请输 [n]:"
+  read iccid
+  [ -z "${iccid}" ] && iccid="n"
+  if [[ $iccid == [Nn] ]]; then
+    lpac_menu && exit 1
+  fi
+
+  echo -e "请输入修改后的昵称:"
+  read nick_name
+  if [ -n "${nick_name}" ]; then
+    ICCID_NUM=`echo $iccid | sed 's/\"//g' | sed "s/'//g"`
+    NEW_NAME=`echo $nick_name | sed 's/\"//g' | sed "s/'//g" | sed 's/\ /\_/g'`
+    LOG=`lpac-hw profile nickname $ICCID_NUM ${NEW_NAME}`
+    LOG_TMP=`echo "$LOG" | grep '"type":"lpa"'`
+    LOG_LV=`echo "$LOG_TMP" | jq .payload.code`
+    if [[ $LOG_LV != 0 ]]; then
+      LOG_ER=`echo "$LOG_TMP" | jq .payload.data`
+      echo -e "${LPAC_Error} 昵称失败: $LOG_ER"
+    else
+      ESIM_INIT=2
+      echo -e "${Green_background_prefix}[$ICCID_NUM]:${Font_color_suffix} ${NEW_NAME}"
+      echo -e "${LPAC_Info} 昵称修改成功"
+    fi
+    echo -e "是否还需要继续使用? [Y/n] :"
+    read yn
+    [ -z "${yn}" ] && yn="y"
+    if [[ $yn == [Yy] ]]; then
+      lpac_profile_nickname && exit 1
+    else
+      lpac_menu
+    fi
+  else
+    echo -e "你没有输入昵称，已取消操作。是否需要重新操作? [Y/n] :"
+    read yn
+    [ -z "${yn}" ] && yn="y"
+    if [[ $yn == [Yy] ]]; then
+      lpac_profile_nickname && exit 1
+    else
+      lpac_menu
+    fi
+  fi
 }
 
 lpac_notification_list() {
