@@ -1,13 +1,16 @@
 #!/system/bin/sh
+Font_color_suffix="\033[0m"
+Red_font_prefix="\033[31m" && Red_background_prefix="\033[41;37m"         #红
+Green_font_prefix="\033[32m" && Green_background_prefix="\033[42;37m"     #绿
+Yellow_font_prefix="\033[33m" && Yellow_background_prefix="\033[43;37m"   #黄
+Blue_font_prefix="\033[36m" && Blue_background_prefix="\033[44;37m"       #蓝
+Magenta_font_prefix="\033[35m" && Magenta_background_prefix="\033[45;37m" #紫
 
-Green_font_prefix="\033[32m" && Red_font_prefix="\033[31m" && Red_background_prefix="\033[41;37m" && Blue_background_prefix="\033[44;37m" && Font_color_suffix="\033[0m"
 EID_Info="${Green_font_prefix}[EID]${Font_color_suffix}"
 FREE_Info="${Green_font_prefix}[可用空间]${Font_color_suffix}"
 
 LPAC_Info="${Green_font_prefix}[LPAC]${Font_color_suffix}"
 LPAC_Error="${Red_font_prefix}[LPAC]${Font_color_suffix}"
-
-TZ_Info="${Green_font_prefix}[通知类型]${Font_color_suffix}"
 
 ESIM_Info="${Green_font_prefix}[eSIM]${Font_color_suffix}"
 ICCID_Info="${Green_font_prefix}[ICCID]${Font_color_suffix}"
@@ -209,6 +212,10 @@ read yn
   fi
 }
 
+lpac_profile_nickname() {
+  echo -e "在做了在做了"
+}
+
 lpac_notification_list() {
   LPAC_CACHE=`lpac-hw notification list`
   if echo "$LPAC_CACHE" | grep -q "data"; then
@@ -226,16 +233,15 @@ lpac_notification_list() {
         LPAC_TZ_TYPE="null"
         echo -e "—————— ID: $LPAC_TZ_ID ——————"
         if [ $ESIM_TZ_MO == '"install"' ]; then
-          LPAC_TZ_TYPE="已下载"
+          LPAC_TZ_TYPE="${Blue_font_prefix}[已下载]${Font_color_suffix}"
         elif [ $ESIM_TZ_MO == '"disable"' ]; then
-          LPAC_TZ_TYPE="已禁用"
+          LPAC_TZ_TYPE="${Yellow_font_prefix}[已禁用]${Font_color_suffix}"
         elif [ $ESIM_TZ_MO == '"enable"' ]; then
-          LPAC_TZ_TYPE="已启用"
+          LPAC_TZ_TYPE="${Green_font_prefix}[已启用]${Font_color_suffix}"
         elif [ $ESIM_TZ_MO == '"delete"' ]; then
-          LPAC_TZ_TYPE="已删除"
+          LPAC_TZ_TYPE="${Red_font_prefix}[已删除]${Font_color_suffix}"
         fi
-        echo -e "$TZ_Info: $LPAC_TZ_TYPE"
-        echo -e "$ICCID_Info: $ESIM_ICCID_TMP"
+        echo -e "${LPAC_TZ_TYPE}: $ESIM_ICCID_TMP"
       done
     else
       echo -e "———————没有通知———————"
@@ -417,11 +423,12 @@ lpac_menu() {
   ${Green_font_prefix} 2.${Font_color_suffix} 切换 eSIM
   ${Green_font_prefix} 3.${Font_color_suffix} 删除 eSIM
 ————————————
-  ${Green_font_prefix} 4.${Font_color_suffix} LPA预览(测活)
-  ${Green_font_prefix} 5.${Font_color_suffix} eSIM通知管理
+  ${Green_font_prefix} 4.${Font_color_suffix} LPA预览
+  ${Green_font_prefix} 5.${Font_color_suffix} 设置昵称
+  ${Green_font_prefix} 6.${Font_color_suffix} 管理通知
 ————————————
-  ${Green_font_prefix} 6.${Font_color_suffix} 重载 SIM卡
-  ${Green_font_prefix} 7.${Font_color_suffix} 重启手机
+  ${Green_font_prefix} 7.${Font_color_suffix} 重载 SIM卡
+  ${Green_font_prefix} 8.${Font_color_suffix} 重启手机
 ————————————
   ${Green_font_prefix} 0.${Font_color_suffix} 退出" && echo
 #
@@ -440,7 +447,7 @@ lpac_menu() {
     killall com.android.phone && exit
   fi
 #
-  echo -e "请输入数字 [0-7]:" && read num
+  echo -e "请输入数字 [0-8]:" && read num
   case "$num" in
   1)
     lpac_profile_download
@@ -455,12 +462,15 @@ lpac_menu() {
     lpac_profile_preview
     ;;
   5)
-    lpac_notification
+    lpac_profile_nickname
     ;;
   6)
-    lpac_kill_info
+    lpac_notification
     ;;
   7)
+    lpac_kill_info
+    ;;
+  8)
     lpac_reboot
     ;;
   0)
@@ -468,7 +478,7 @@ lpac_menu() {
     exit
     ;;
   *)
-    echo "请输入正确数字 [0-7]"
+    echo "请输入正确数字 [0-8]"
     ;;
   esac
 }
