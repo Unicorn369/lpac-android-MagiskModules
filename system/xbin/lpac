@@ -318,7 +318,7 @@ read tzid
       echo -e "${Info_LPAC} 已删除全部通知"
     fi
   else
-    echo -e "请输入操作类型，发送: 0 | 删除: 1 "
+    echo -e "请输入操作类型 [发送/0 | 删除/1]:"
     read tzidx
     if [[ $tzidx == 0 ]]; then
       LPAC_LOG=`lpac-hw notification process $tzid`
@@ -416,7 +416,7 @@ lpac [chip|profile|notification] [参数]
      -c               [可选]确认码
      -i               [可选]IMEI
      -p               [可选]交互式预览模式
-     -a               LPA代码。
+     -a               LPA代码
 示例：
     【下载(手动输入)】${Blue_background_prefix}lpac profile download -s rsp.esim.com -m 'QR-AB-CD-E78'${Font_color_suffix}
     【下载(LPA代码)】${Blue_background_prefix}lpac profile download -a 'LPA:1$rsp.esim.com$QR-AB-CD-E78'${Font_color_suffix}
