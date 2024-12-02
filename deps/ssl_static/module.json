@@ -1,0 +1,4 @@
+{
+  "export_libraries": [":crypto_static"],
+  "android": {}
+}
