@@ -1,0 +1,3 @@
+[submodule "libgbinder"]
+	path = libgbinder
+	url = https://github.com/mer-hybris/libgbinder.git
