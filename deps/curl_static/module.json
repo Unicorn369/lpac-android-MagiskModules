@@ -1,0 +1,4 @@
+{
+  "export_libraries": ["//boringssl:ssl_static",":nghttp2_static",":nghttp3_static",":ngtcp2_static","-lz"],
+  "android": {}
+}
