@@ -1,0 +1,4 @@
+{
+  "export_libraries": [":ngtcp2_crypto_static"],
+  "android": {}
+}
