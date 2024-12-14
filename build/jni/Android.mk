@@ -1,21 +1,23 @@
 LOCAL_PATH := $(call my-dir)/../..
-
+COMMON_PARENT_DIR := $(call my-dir)/../..
+#################################
+LPAC_WITH_APDU_AT ?= true
+LPAC_WITH_APDU_PCSC ?= false
+LPAC_WITH_APDU_GBINDER ?= true
+#################################
 include $(CLEAR_VARS)
 LOCAL_MODULE := lpac
 
 LOCAL_MODULE_FILENAME := lpac
 
-LOCAL_CFLAGS := -DLPAC_WITH_APDU_GBINDER -DLPAC_WITH_HTTP_CURL
+LOCAL_CFLAGS := -DLPAC_WITH_HTTP_CURL
 
 LOCAL_SRC_FILES := \
     lpac/cjson/cJSON.c \
     lpac/cjson/cJSON_ex.c \
     \
     lpac/driver/driver.c \
-    \
-    lpac/driver/apdu/gbinder_hidl.c \
     lpac/driver/apdu/stdio.c \
-    \
     lpac/driver/http/curl.c \
     lpac/driver/http/stdio.c \
     \
@@ -64,11 +66,32 @@ LOCAL_C_INCLUDES += \
     $(LOCAL_PATH)/lpac/driver \
     $(LOCAL_PATH)/lpac/src
 
-LOCAL_STATIC_LIBRARIES += libgbinder curl_static
+#LOCAL_LDFLAGS := @jni/LDFLAGS.txt
+LOCAL_STATIC_LIBRARIES := curl_static
+
+ifeq ($(LPAC_WITH_APDU_AT),true)
+    LOCAL_CFLAGS += -DLPAC_WITH_APDU_AT
+    LOCAL_SRC_FILES += lpac/driver/apdu/at.c
+endif
+ifeq ($(LPAC_WITH_APDU_PCSC),true)
+    LOCAL_CFLAGS += -DLPAC_WITH_APDU_PCSC
+    LOCAL_SRC_FILES += lpac/driver/apdu/pcsc.c
+    LOCAL_STATIC_LIBRARIES += libpcsclite
+endif
+ifeq ($(LPAC_WITH_APDU_GBINDER),true)
+    LOCAL_CFLAGS += -DLPAC_WITH_APDU_GBINDER
+    LOCAL_SRC_FILES += lpac/driver/apdu/gbinder_hidl.c
+    LOCAL_STATIC_LIBRARIES += libgbinder
+endif
 
 include $(BUILD_EXECUTABLE)
 ##############################
-include $(LOCAL_PATH)/libgbinder.mk
+ifeq ($(LPAC_WITH_APDU_PCSC),true)
+    include $(COMMON_PARENT_DIR)/libpcsclite.mk
+endif
+ifeq ($(LPAC_WITH_APDU_GBINDER),true)
+    include $(COMMON_PARENT_DIR)/libgbinder.mk
+endif
 
 $(call import-add-path,$(LOCAL_PATH))
 $(call import-module,deps/curl_static)
