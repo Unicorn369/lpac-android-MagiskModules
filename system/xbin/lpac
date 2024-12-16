@@ -539,9 +539,11 @@ if [[ $UID == "0" || $USER_ID == "0" || `id -u` == "0" ]]; then
     ;;
   k)
     killall com.android.phone
+    echo -e "${Info_LPAC} 命令执行完毕"
     ;;
   k2)
     am broadcast -a android.intent.action.SIM_STATE_CHANGED
+    echo -e "${Info_LPAC} 命令执行完毕"
     ;;
   *)
     exec lpac-hw $@
