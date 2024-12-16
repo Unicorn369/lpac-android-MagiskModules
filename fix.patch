@@ -1,0 +1,98 @@
+diff --git a/libgbinder/src/gbinder_ipc.c b/libgbinder/src/gbinder_ipc.c
+index c43fb81..2fcf1cb 100644
+--- a/libgbinder/src/gbinder_ipc.c
++++ b/libgbinder/src/gbinder_ipc.c
+@@ -976,6 +976,9 @@ gbinder_ipc_looper_join(
+         int err = clock_gettime(CLOCK_REALTIME, &ts);
+ 
+         if (!err) {
++#if defined(HAS_PTHREAD_TIMEDJOIN_NP) && HAS_PTHREAD_TIMEDJOIN_NP == 0
++            err = pthread_join(looper->thread, NULL);
++#else
+             const long ms = 1000000;
+             const long sec = 1000 * ms;
+             const long ns = ts.tv_nsec + GBINDER_IPC_LOOPER_JOIN_TIMEOUT_MS*ms;
+@@ -983,6 +986,7 @@ gbinder_ipc_looper_join(
+             ts.tv_sec += ns / sec;
+             ts.tv_nsec = ns % sec;
+             err = pthread_timedjoin_np(looper->thread, NULL, &ts);
++#endif
+         }
+ 
+         if (err) {
+diff --git a/lpac/driver/apdu/gbinder_hidl.c b/lpac/driver/apdu/gbinder_hidl.c
+index 6c0bde5..a766cc4 100644
+--- a/lpac/driver/apdu/gbinder_hidl.c
++++ b/lpac/driver/apdu/gbinder_hidl.c
+@@ -86,12 +86,13 @@ static GBinderLocalReply *radio_response_transact(
+     if (lastRadioErr != 0)
+         goto out;
+ 
++    const struct icc_io_result *icc_io_res = gbinder_reader_read_hidl_struct(&reader, struct icc_io_result);
++
+     switch (code) {
+         case HIDL_SERVICE_ICC_OPEN_LOGICAL_CHANNEL_CALLBACK:
+             gbinder_reader_read_int32(&reader, &lastIntResp);
+             break;
+         case HIDL_SERVICE_ICC_TRANSMIT_APDU_LOGICAL_CHANNEL_CALLBACK:
+-            const struct icc_io_result *icc_io_res = gbinder_reader_read_hidl_struct(&reader, struct icc_io_result);
+             // We cannot rely on the *req pointer being valid after we return
+             lastIccIoResult.sw1 = icc_io_res->sw1;
+             lastIccIoResult.sw2 = icc_io_res->sw2;
+@@ -171,7 +172,7 @@ static int try_open_slot(int slotId, const uint8_t *aid, uint32_t aid_len)
+     }
+ 
+     // Now, try to open the AID
+-    uint8_t aid_hex[255];
++    char aid_hex[255];
+     euicc_hexutil_bin2hex(aid_hex, 255, aid, aid_len);
+ 
+     req = gbinder_client_new_request(client);
+@@ -213,9 +214,12 @@ static int apdu_interface_logic_channel_open(struct euicc_ctx *ctx, const uint8_
+     // We only start to use gbinder connection here, because only now can we detect whether
+     // a given slot is a valid eSIM slot. This way we can automatically fall back in the case
+     // where a device has only one eSIM -- we don't want to force the user to choose in this case.
+-    int res = try_open_slot(1, aid, aid_len);
+-    if (res < 0)
+-        res = try_open_slot(2, aid, aid_len);
++    int UIM_SLOT = 1;
++    if (getenv("UIM_SLOT"))
++        UIM_SLOT = atoi(getenv("UIM_SLOT"));
++    int res = try_open_slot(UIM_SLOT, aid, aid_len);
++    //if (res < 0)
++    //    res = try_open_slot(2, aid, aid_len);
+     if (res >= 0)
+         lastChannelId = res;
+     return res;
+@@ -240,7 +244,7 @@ static int apdu_interface_transmit(struct euicc_ctx *ctx, uint8_t **rx, uint32_t
+     gbinder_local_request_init_writer(req, &writer);
+     gbinder_writer_append_int32(&writer, 1000);
+ 
+-    uint8_t tx_hex[4096] = {0};
++    char tx_hex[4096] = {0};
+     euicc_hexutil_bin2hex(tx_hex, 4096, &tx[5], tx_len - 5);
+ 
+     if (DEBUG)
+@@ -321,7 +325,7 @@ static void libapduinterface_fini(struct euicc_apdu_interface *ifstruct)
+ const struct euicc_driver driver_apdu_gbinder_hidl = {
+     .type = DRIVER_APDU,
+     .name = "gbinder_hidl",
+-    .init = libapduinterface_init,
++    .init = (int (*)(void *))libapduinterface_init,
+     .main = libapduinterface_main,
+-    .fini = libapduinterface_fini,
++    .fini = (void (*)(void *))libapduinterface_fini,
+ };
+diff --git a/lpac/src/main.c b/lpac/src/main.c
+index f7ead78..71ba015 100644
+--- a/lpac/src/main.c
++++ b/lpac/src/main.c
+@@ -114,7 +114,7 @@ int main(int argc, char **argv)
+     apdu_driver = getenv("LPAC_APDU");
+     if (apdu_driver == NULL)
+     {
+-        apdu_driver = "pcsc";
++        apdu_driver = "gbinder_hidl";
+     }
+ 
+     http_driver = getenv("LPAC_HTTP");
