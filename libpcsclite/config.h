@@ -7,14 +7,6 @@
 /* PC/SC target architecture */
 #define PCSC_ARCH "Android"
 
-#define OPENCT_FILE "/var/run/openct/status"
-
-#define PROFILE_FILE "/tmp/pcsc_profile"
-
-/* directory containing IPC files */
-#define USE_IPCDIR "/data/tmp/run"
-//#define USE_IPCDIR "/cache/pcsc/run"
-
 /* Version number of package */
 #define VERSION "2.0.0"
 

@@ -5,6 +5,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE    := libpcsclite
 
 LOCAL_CFLAGS := -DLIBPCSCLITE
+LOCAL_CFLAGS += -DUSE_IPCDIR=\"/data/adb/pcsc\"
 
 LOCAL_SRC_FILES := \
 	libpcsclite/debug.c \
