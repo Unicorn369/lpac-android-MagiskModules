@@ -31,7 +31,9 @@ else
   mv -f "$MODPATH/deps/arm64/libccid.so" "$PCSC_DRIVERS/Linux/"
 fi
 
+ui_print "- 正在清理不需要的文件..."
 rm -rf "$MODPATH/deps"
+rm -rf "$MODPATH/update.json"
 
 ui_print "- 安装完成！！！"
 ui_print "- 重启设备后，在终端模拟器中，执行“lpac h”即可食用"

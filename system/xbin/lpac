@@ -33,7 +33,21 @@ ESIM_FREE="null"
 ESIM_NAME="null"
 ESIM_ICCID="null"
 
+LPAC_DRIVER_APDU="gbinder_hidl"
+
+check_pid_pcscd() {
+  PCSCD_PID=$(ps -ef |grep pcscd |grep -v grep |awk '{print $2}')
+}
+
+lpac_apdu_info() {
+  if [[ `printenv LPAC_APDU` == "pcsc" ]]; then
+    check_pid_pcscd
+    LPAC_DRIVER_APDU="pcsc"
+  fi
+}
+
 lpac_chip_info() {
+  lpac_apdu_info
   if [ $ESIM_INIT != 1 ]; then
     LPAC_LOG=`lpac-hw chip info`
     if echo "$LPAC_LOG" | grep -q "eidValue"; then
@@ -158,8 +172,19 @@ lpac_profile_switch() {
     ESIM_INIT=2
     echo -e "${Info_SW}"
   fi
-  echo -e "$Tip 需要重载SIM卡方可生效。如出现长时间无信号，请尝试${Blue_background_prefix}[插拔SIM卡]${Font_color_suffix}或${Blue_background_prefix}[重启手机]${Font_color_suffix}"
-  lpac_kill
+  if [[ $LPAC_DRIVER_APDU != "pcsc" ]]; then
+    echo -e "$Tip 需要重载SIM卡方可生效。如出现长时间无信号，请尝试${Blue_background_prefix}[插拔SIM卡]${Font_color_suffix}或${Blue_background_prefix}[重启手机]${Font_color_suffix}"
+    lpac_kill
+  else
+    echo -e "是否需要返回主菜单? [Y/n] :"
+    read yn
+      [ -z "${yn}" ] && yn="y"
+      if [[ $yn == [Yy] ]]; then
+        lpac_menu
+      else
+        kill_android_pcscd && exit
+      fi
+  fi
 }
 
 lpac_profile_delete() {
@@ -183,13 +208,24 @@ lpac_profile_delete() {
     ESIM_INIT=2
     echo -e "${Info_DE}"
   fi
-  lpac_kill
+  if [[ $LPAC_DRIVER_APDU != "pcsc" ]]; then
+    lpac_kill
+  else
+    echo -e "是否需要返回主菜单? [Y/n] :"
+    read yn
+      [ -z "${yn}" ] && yn="y"
+      if [[ $yn == [Yy] ]]; then
+        lpac_menu
+      else
+        kill_android_pcscd && exit
+      fi
+  fi
 }
 
 lpac_profile_preview() {
 echo -e "请输入LPA代码? [格式为：LPA:1\$AAA\$BBB\$CCC]:"
 read lpa_code
-[ -z "${lpa_code}" ] && echo "你还没有输入LPA代码，请重新输入" && lpac_profile_download
+[ -z "${lpa_code}" ] && echo "你还没有输入LPA代码，请重新输入" && lpac_profile_preview
   LPA=`echo $lpa_code | sed 's/\"//g' | sed "s/'//g"`
 #
   LPAC_LOG=`echo n | lpac-hw profile download -p -a $LPA`
@@ -211,7 +247,7 @@ echo -e "是否还需要继续使用? [Y/n] :"
 read yn
   [ -z "${yn}" ] && yn="y"
   if [[ $yn == [Yy] ]]; then
-    lpac_profile_download
+    lpac_profile_preview && exit 1
   else
     lpac_menu
   fi
@@ -349,7 +385,7 @@ echo -e "是否还需要继续使用? [Y/n] :"
 read yn
   [ -z "${yn}" ] && yn="y"
   if [[ $yn == [Yy] ]]; then
-    lpac_notification
+    lpac_notification && exit 1
   else
     lpac_menu
   fi
@@ -364,14 +400,23 @@ lpac_kill() {
   read yn
     [ -z "${yn}" ] && yn="y"
     if [[ $yn == [Yy] ]]; then
-      #echo -e "${Info_LPAC} 命令执行中..."
-      #sleep 6
-      #am broadcast -a android.intent.action.SIM_STATE_CHANGED
       echo -e "${Info_LPAC} 命令执行中......"
-      killall com.android.phone
+      kill_android_phone
       echo -e "${Info_LPAC} 命令执行完毕"
     else
       lpac_menu
+  fi
+}
+kill_android_phone() {
+  if [[ $LPAC_DRIVER_APDU != "pcsc" ]]; then
+    #am broadcast -a android.intent.action.SIM_STATE_CHANGED
+    killall com.android.phone
+  fi
+}
+kill_android_pcscd() {
+  check_pid_pcscd
+  if [[ -n "${PCSCD_PID}" ]]; then
+    kill -9 ${PCSCD_PID}
   fi
 }
 
@@ -437,9 +482,38 @@ lpac [chip|profile|notification] [参数]
     【删除所有通知】${Blue_background_prefix}lpac notification remove -a${Font_color_suffix}
 
 ——————————————————————
+前置选项
+
+-> LPAC_APDU
+      at              使用AT
+      pcsc            使用智能卡读卡器
+      gbinder_hidl    *[默认]使用SoC
+
+-> AT_DEVICE    指定AT设备 (与“LPAC_APDU=at”配合)
+
+-> UIM_SLOT     指定卡槽 (与“LPAC_APDU=gbinder_hidl”配合)
+
+-> DRIVER_IFID  指定读卡器 (与“LPAC_APDU=pcsc”配合)
+
+-> Debug选项
+      LIBEUICC_DEBUG_APDU
+      LIBEUICC_DEBUG_HTTP
+      AT_DEBUG
+      GBINDER_APDU_DEBUG
+
+示例：
+    【使用AT】${Blue_background_prefix}LPAC_APDU=at AT_DEVICE=/dev/tty0 lpac chip info${Font_color_suffix}
+    【开启Debug】${Blue_background_prefix}LIBEUICC_DEBUG_APDU=1 GBINDER_APDU_DEBUG=true lpac chip info${Font_color_suffix}
+——————————————————————
 lpac [a|k|h]
 
--> a:    简易操作界面
+-> a:    简易操作菜单(默认读取SIM卡1)
+
+-> s1:   打开简易操作菜单(读取SIM卡1)
+
+-> s2:   打开简易操作菜单(读取SIM卡2)
+
+-> d:    打开简易操作菜单(使用读卡器)
 
 -> k:    重载SIM卡
 
@@ -483,14 +557,23 @@ lpac_menu() {
     if [[ $ESIM_ICCID != "null" ]]; then
       echo -e "${Info_ESIM}: $ESIM_NAME"
       echo -e "${Info_ICCID}: $ESIM_ICCID"
+      if [[ -n "${PCSCD_PID}" ]]; then
+        echo -e "${Info_LPAC}: 正在使用读卡器"
+      fi
       echo -e "————————————"
     fi
 #
   else
-    echo -e "$Error eSIM读取失败！请指定SIM卡或${Blue_background_prefix}[插拔SIM卡]${Font_color_suffix}"
-    echo -e "$Error 默认读取SIM1，如需读取SIM2请执行："
-    echo -e "${Red_background_prefix}UIM_SLOT=2 lpac a${Font_color_suffix}"
-    killall com.android.phone && exit
+    if [[ $LPAC_DRIVER_APDU != "pcsc" ]]; then
+      echo -e "$Error eSIM读取失败！请指定SIM卡或${Blue_background_prefix}[插拔SIM卡]${Font_color_suffix}"
+      echo -e "$Tip 默认读取SIM1，如需读取SIM2请执行：${Red_background_prefix}lpac s2${Font_color_suffix}"
+      echo -e "$Tip 如果你使用的是读卡器，请执行：${Red_background_prefix}lpac d${Font_color_suffix}"
+    else
+      echo -e "$Error 读卡器读取失败！请检查是否已插入兼容的读卡器，或尝试重新${Blue_background_prefix}[插拔读卡器]${Font_color_suffix}"
+    fi
+    kill_android_phone
+    kill_android_pcscd
+	exit
   fi
 #
   echo -e "请输入数字选择功能 [0-8]:" && read num
@@ -514,13 +597,18 @@ lpac_menu() {
     lpac_notification
     ;;
   7)
-    lpac_kill_info
+    if [[ `printenv LPAC_APDU` == "pcsc" ]]; then
+      echo -e "${Info_LPAC} 你正在使用读卡器，无须执行此操作！"
+    else
+      lpac_kill_info
+    fi
     ;;
   8)
     lpac_reboot
     ;;
   0)
-    killall com.android.phone
+    kill_android_phone
+    kill_android_pcscd
     exit
     ;;
   *)
@@ -531,14 +619,24 @@ lpac_menu() {
 
 if [[ $UID == "0" || $USER_ID == "0" || `id -u` == "0" ]]; then
   case "$1" in
-  a)
+  a|s|s1)
+    lpac_menu
+    ;;
+  s2)
+    export UIM_SLOT=2
+    lpac_menu
+    ;;
+  d)
+    export LPAC_APDU=pcsc
+    kill_android_pcscd
+    pcscd
     lpac_menu
     ;;
   h)
     lpac_help
     ;;
   k)
-    killall com.android.phone
+    kill_android_phone
     echo -e "${Info_LPAC} 命令执行完毕"
     ;;
   k2)
@@ -546,6 +644,10 @@ if [[ $UID == "0" || $USER_ID == "0" || `id -u` == "0" ]]; then
     echo -e "${Info_LPAC} 命令执行完毕"
     ;;
   *)
+    if [[ `printenv LPAC_APDU` == "pcsc" ]]; then
+      kill_android_pcscd
+      pcscd
+    fi
     exec lpac-hw $@
     ;;
   esac
