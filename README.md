@@ -20,8 +20,6 @@
 
 在v1.1.0版本中，已加入支持使用智能卡读卡器(PC/SC)，经反馈部分用户第一次启动可能无法识别，但是重插后就能正常启动。如果还是出现无法识别请反馈
 
-至于加入`QMI`很抱歉，做不到
-
 ### 如何编译LPAC？
 请参考这里：https://github.com/Unicorn369/lpac-android-MagiskModules/tree/sources
 

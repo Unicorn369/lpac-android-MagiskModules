@@ -15,6 +15,7 @@ Tip_FREE="${Yellow_font_prefix}[可用空间]${Font_color_suffix}"
 Info_LPAC="${Green_font_prefix}[LPAC]${Font_color_suffix}"
 Info_ESIM="${Green_font_prefix}[eSIM]${Font_color_suffix}"
 Info_ICCID="${Green_font_prefix}[ICCID]${Font_color_suffix}"
+Info_PCSC="${Green_font_prefix}[PCSC]${Font_color_suffix}"
 Info_SPN="${Green_font_prefix}[提供商]${Font_color_suffix}"
 
 Info_DL="${Green_font_prefix}[下载成功]${Font_color_suffix}"
@@ -22,6 +23,7 @@ Info_SW="${Green_font_prefix}[切换成功]${Font_color_suffix}"
 Info_DE="${Green_font_prefix}[删除成功]${Font_color_suffix}"
 
 Error_LPAC="${Red_font_prefix}[LPAC]${Font_color_suffix}"
+Error_PCSC="${Red_font_prefix}[PCSC]${Font_color_suffix}"
 Error_DL="${Red_font_prefix}[下载失败]${Font_color_suffix}"
 Error_SW="${Red_font_prefix}[切换失败]${Font_color_suffix}"
 Error_DE="${Red_font_prefix}[删除失败]${Font_color_suffix}"
@@ -416,7 +418,17 @@ kill_android_phone() {
 kill_android_pcscd() {
   check_pid_pcscd
   if [[ -n "${PCSCD_PID}" ]]; then
-    kill -9 ${PCSCD_PID}
+    killall pcscd
+  fi
+}
+
+start_pcscd() {
+  kill_android_pcscd
+  echo -e "${Info_PCSC}: 服务启动中..."
+  pcscd
+  check_pid_pcscd
+  if [[ -z "${PCSCD_PID}" ]]; then
+    echo -e "${Error_PCSC}: 服务启动失败"
   fi
 }
 
@@ -448,9 +460,9 @@ lpac [chip|profile|notification] [参数]
      list             查看eUICC配置文件
      nickname [iccid] [name]
                       为指定的配置文件设置别名
-     enable [iccid]   启用指定配置文件
+     enable  [iccid]  启用指定配置文件
      disable [iccid]  禁用指定配置文件
-     delete [iccid]   删除指定配置文件
+     delete  [iccid]  删除指定配置文件
 示例：
     【设置别名】${Blue_background_prefix}lpac profile nickname '898612345678' '中国移动'${Font_color_suffix}
     【启用配置】${Blue_background_prefix}lpac profile enable '898612345678'${Font_color_suffix}
@@ -463,8 +475,8 @@ lpac [chip|profile|notification] [参数]
      -p               [可选]交互式预览模式
      -a               LPA代码
 示例：
-    【下载(手动输入)】${Blue_background_prefix}lpac profile download -s rsp.esim.com -m 'QR-AB-CD-E78'${Font_color_suffix}
-    【下载(LPA代码)】${Blue_background_prefix}lpac profile download -a 'LPA:1$rsp.esim.com$QR-AB-CD-E78'${Font_color_suffix}
+    【下载(手动输入)】${Blue_background_prefix}lpac profile download -s 'rsp.esim.com' -m 'QR-AB-CD-E78'${Font_color_suffix}
+    【下载(LPA代码)】${Blue_background_prefix}lpac profile download -a 'LPA:1\$rsp.esim.com\$QR-AB-CD-E78'${Font_color_suffix}
 
 -> profile discovery: 检测在SM-DS服务器上注册的可用配置文件
      -s               SM-DS服务器
@@ -505,15 +517,19 @@ lpac [chip|profile|notification] [参数]
     【使用AT】${Blue_background_prefix}LPAC_APDU=at AT_DEVICE=/dev/tty0 lpac chip info${Font_color_suffix}
     【开启Debug】${Blue_background_prefix}LIBEUICC_DEBUG_APDU=1 GBINDER_APDU_DEBUG=true lpac chip info${Font_color_suffix}
 ——————————————————————
-lpac [a|k|h]
+lpac [..]
 
--> a:    简易操作菜单(默认读取SIM卡1)
+-> s:    切换eSIM(默认读取SIM卡1)
 
 -> s1:   打开简易操作菜单(读取SIM卡1)
 
 -> s2:   打开简易操作菜单(读取SIM卡2)
 
--> d:    打开简易操作菜单(使用读卡器)
+-> c:    打开简易操作菜单(使用读卡器)
+
+-> d:    下载eSIM(默认读取SIM卡1)
+
+-> del:  删除eSIM(默认读取SIM卡1)
 
 -> k:    重载SIM卡
 
@@ -619,18 +635,26 @@ lpac_menu() {
 
 if [[ $UID == "0" || $USER_ID == "0" || `id -u` == "0" ]]; then
   case "$1" in
-  a|s|s1)
+  s)
+    lpac_profile_switch
+    ;;
+  s1|sim)
     lpac_menu
     ;;
-  s2)
+  s2|sim2)
     export UIM_SLOT=2
     lpac_menu
     ;;
-  d)
+  c|pcsc)
     export LPAC_APDU=pcsc
-    kill_android_pcscd
-    pcscd
+    start_pcscd
     lpac_menu
+    ;;
+  d|dl)
+    lpac_profile_download
+    ;;
+  del)
+    lpac_profile_delete
     ;;
   h)
     lpac_help
@@ -645,8 +669,7 @@ if [[ $UID == "0" || $USER_ID == "0" || `id -u` == "0" ]]; then
     ;;
   *)
     if [[ `printenv LPAC_APDU` == "pcsc" ]]; then
-      kill_android_pcscd
-      pcscd
+      start_pcscd
     fi
     exec lpac-hw $@
     ;;

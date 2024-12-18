@@ -15,8 +15,9 @@ else
   ui_print "- 设备SDK: $API"
 fi
 #
+rm -rf /data/adb/pcsc
 PCSC_DRIVERS="/data/adb/pcsc/drivers/ifd-ccid.bundle/Contents"
-mkdir -p "$PCSC_DRIVERS/Linux"
+mkdir -p "$PCSC_DRIVERS/Android"
 mv -f "$MODPATH/deps/Info.plist" "$PCSC_DRIVERS/"
 #
 if [ "$ARCH" = "arm" ]; then
@@ -25,10 +26,10 @@ if [ "$ARCH" = "arm" ]; then
   mv -f "$MODPATH/deps/arm/lpac-hw" "$MODPATH/system/xbin"
   mv -f "$MODPATH/deps/arm/pcscd" "$MODPATH/system/xbin"
   ui_print "- 正在复制PCSC驱动文件..."
-  mv -f "$MODPATH/deps/arm/libccid.so" "$PCSC_DRIVERS/Linux/"
+  mv -f "$MODPATH/deps/arm/libccid.so" "$PCSC_DRIVERS/Android/"
 else
   ui_print "- 正在复制PCSC驱动文件..."
-  mv -f "$MODPATH/deps/arm64/libccid.so" "$PCSC_DRIVERS/Linux/"
+  mv -f "$MODPATH/deps/arm64/libccid.so" "$PCSC_DRIVERS/Android/"
 fi
 
 ui_print "- 正在清理不需要的文件..."
