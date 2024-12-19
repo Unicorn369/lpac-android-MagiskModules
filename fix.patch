@@ -1,25 +1,3 @@
-diff --git a/libgbinder/src/gbinder_ipc.c b/libgbinder/src/gbinder_ipc.c
-index c43fb81..2fcf1cb 100644
---- a/libgbinder/src/gbinder_ipc.c
-+++ b/libgbinder/src/gbinder_ipc.c
-@@ -976,6 +976,9 @@ gbinder_ipc_looper_join(
-         int err = clock_gettime(CLOCK_REALTIME, &ts);
- 
-         if (!err) {
-+#if defined(HAS_PTHREAD_TIMEDJOIN_NP) && HAS_PTHREAD_TIMEDJOIN_NP == 0
-+            err = pthread_join(looper->thread, NULL);
-+#else
-             const long ms = 1000000;
-             const long sec = 1000 * ms;
-             const long ns = ts.tv_nsec + GBINDER_IPC_LOOPER_JOIN_TIMEOUT_MS*ms;
-@@ -983,6 +986,7 @@ gbinder_ipc_looper_join(
-             ts.tv_sec += ns / sec;
-             ts.tv_nsec = ns % sec;
-             err = pthread_timedjoin_np(looper->thread, NULL, &ts);
-+#endif
-         }
- 
-         if (err) {
 diff --git a/lpac/driver/apdu/gbinder_hidl.c b/lpac/driver/apdu/gbinder_hidl.c
 index 6c0bde5..a766cc4 100644
 --- a/lpac/driver/apdu/gbinder_hidl.c

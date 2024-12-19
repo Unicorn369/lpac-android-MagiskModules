@@ -1,6 +1,3 @@
-[submodule "libgbinder"]
-	path = libgbinder
-	url = https://github.com/mer-hybris/libgbinder.git
 [submodule "lpac"]
 	path = lpac
 	url = https://github.com/estkme-group/lpac
