@@ -855,13 +855,13 @@ static void signal_trap(int sig)
 
 static void print_version(void)
 {
-	printf("%s version %s.\n",  PACKAGE, VERSION);
+	printf("%s version %s (%s)\n",  PACKAGE, VERSION, PCSCD_ARCH);
 	printf("Copyright (C) 1999-2002 by David Corcoran <corcoran@musclecard.com>.\n");
 	printf("Copyright (C) 2001-2022 by Ludovic Rousseau <ludovic.rousseau@free.fr>.\n");
 	printf("Copyright (C) 2003-2004 by Damien Sauveron <sauveron@labri.fr>.\n");
 	printf("Report bugs to <pcsclite-muscle@lists.infradead.org>.\n");
 
-	printf("Enabled features:%s\n", PCSCLITE_FEATURES);
+	printf("Enabled features:\nserial usb libusb\nusbdropdir=%s\nipcdir=%s\nconfigdir=%s\n", PCSCLITE_HP_DROPDIR, USE_IPCDIR, PCSCLITE_CONFIG_DIR);
 	printf("MAX_READERNAME: %d, PCSCLITE_MAX_READERS_CONTEXTS: %d\n",
 		MAX_READERNAME, PCSCLITE_MAX_READERS_CONTEXTS);
 }

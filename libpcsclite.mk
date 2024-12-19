@@ -1,7 +1,11 @@
 LOCAL_PATH := $(call my-dir)
+PCSC_IPCDIR := \"/data/adb/pcsc\"
+PCSC_DROPDIR := \"/data/adb/pcsc/drivers\"
+PCSC_CONFIG := \"/data/adb/pcsc/reader.conf.d\"
 PCSC_CFLAGS := -DSIMCLIST_NO_DUMPRESTORE \
-  -DUSE_IPCDIR=\"/data/adb/pcsc\" \
-  -DPCSCLITE_HP_DROPDIR=\"/data/adb/pcsc/drivers\"
+    -DUSE_IPCDIR=$(PCSC_IPCDIR) \
+    -DPCSCLITE_HP_DROPDIR=$(PCSC_DROPDIR) \
+    -DPCSCLITE_CONFIG_DIR=$(PCSC_CONFIG)
 ########## libpcsclite ##########
 include $(CLEAR_VARS)
 
@@ -53,7 +57,6 @@ LOCAL_STATIC_LIBRARIES := libusb
 
 LOCAL_CFLAGS := $(PCSC_CFLAGS) -DPCSCD
 LOCAL_CFLAGS += \
-    -DPCSCLITE_CONFIG_DIR=\"/data/adb/pcsc/reader.conf.d\" \
     -DOPENCT_FILE=\"/data/adb/pcsc/openct/status\" \
     -DPROFILE_FILE=\"/data/adb/pcsc/pcsc_profile\"
 
