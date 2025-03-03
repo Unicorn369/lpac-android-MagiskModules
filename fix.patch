@@ -62,10 +62,10 @@ index 6c0bde5..a766cc4 100644
 +    .fini = (void (*)(void *))libapduinterface_fini,
  };
 diff --git a/lpac/src/main.c b/lpac/src/main.c
-index 82f9e29..3aaf6be 100644
+index 1633ca2..494c176 100644
 --- a/lpac/src/main.c
 +++ b/lpac/src/main.c
-@@ -132,7 +132,7 @@ int main(int argc, char **argv)
+@@ -155,7 +155,7 @@ int main(int argc, char **argv)
      apdu_driver = getenv("LPAC_APDU");
      if (apdu_driver == NULL)
      {
