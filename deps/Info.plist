@@ -15,7 +15,7 @@
 	<key>CFBundlePackageType</key>
 	<string>BNDL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.6.1</string>
+	<string>1.6.2</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
@@ -220,6 +220,7 @@
 		<string>0x2406</string>
 		<string>0x2406</string>
 		<string>0x2406</string>
+		<string>0x3752</string>
 		<string>0x33B6</string>
 		<string>0x1FD3</string>
 		<string>0x0DC3</string>
@@ -280,6 +281,7 @@
 		<string>0x2DFF</string>
 		<string>0x2DFF</string>
 		<string>0x19E7</string>
+		<string>0x046A</string>
 		<string>0x046A</string>
 		<string>0x046A</string>
 		<string>0x046A</string>
@@ -423,6 +425,7 @@
 		<string>0x076B</string>
 		<string>0x04A4</string>
 		<string>0x04A4</string>
+		<string>0x1D99</string>
 		<string>0x0B81</string>
 		<string>0x04E6</string>
 		<string>0x04E6</string>
@@ -496,6 +499,7 @@
 		<string>0x2D25</string>
 		<string>0x2D25</string>
 		<string>0x0925</string>
+		<string>0x2C97</string>
 		<string>0x2C97</string>
 		<string>0x2C97</string>
 		<string>0x2C97</string>
@@ -626,6 +630,7 @@
 		<string>0x08DF</string>
 		<string>0x05AF</string>
 		<string>0x1370</string>
+		<string>0x0483</string>
 		<string>0x1206</string>
 		<string>0x1206</string>
 		<string>0x0E6A</string>
@@ -633,10 +638,12 @@
 		<string>0x1862</string>
 		<string>0x08E6</string>
 		<string>0x17B9</string>
+		<string>0x17B9</string>
 		<string>0x1976</string>
 		<string>0xA625</string>
 		<string>0x0B0C</string>
 		<string>0x0B0C</string>
+		<string>0x349E</string>
 		<string>0x349E</string>
 		<string>0x349E</string>
 		<string>0x23EB</string>
@@ -680,6 +687,7 @@
 		<string>0x058F</string>
 		<string>0x0DC3</string>
 		<string>0x03EB</string>
+		<string>0x155B</string>
 		<string>0x0A5C</string>
 		<string>0x0A5C</string>
 		<string>0x0A5C</string>
@@ -824,6 +832,7 @@
 		<string>0x5004</string>
 		<string>0x5006</string>
 		<string>0x0001</string>
+		<string>0x0001</string>
 		<string>0xCC1D</string>
 		<string>0x0900</string>
 		<string>0x1007</string>
@@ -891,6 +900,7 @@
 		<string>0x00A4</string>
 		<string>0x00A5</string>
 		<string>0x00A7</string>
+		<string>0x0202</string>
 		<string>0x005B</string>
 		<string>0x0070</string>
 		<string>0x0072</string>
@@ -1026,6 +1036,7 @@
 		<string>0x5427</string>
 		<string>0x00C7</string>
 		<string>0x00D4</string>
+		<string>0x0016</string>
 		<string>0x0220</string>
 		<string>0x5612</string>
 		<string>0x5613</string>
@@ -1106,6 +1117,7 @@
 		<string>0x4009</string>
 		<string>0x5009</string>
 		<string>0x6009</string>
+		<string>0x7009</string>
 		<string>0x6007</string>
 		<string>0x6055</string>
 		<string>0x6111</string>
@@ -1229,6 +1241,7 @@
 		<string>0x3203</string>
 		<string>0x605A</string>
 		<string>0x0901</string>
+		<string>0x2017</string>
 		<string>0x2105</string>
 		<string>0x2107</string>
 		<string>0x5083</string>
@@ -1236,10 +1249,12 @@
 		<string>0x0000</string>
 		<string>0x34C7</string>
 		<string>0x400B</string>
+		<string>0x400F</string>
 		<string>0x0001</string>
 		<string>0x0810</string>
 		<string>0x0050</string>
 		<string>0x0052</string>
+		<string>0x0026</string>
 		<string>0x0300</string>
 		<string>0x0430</string>
 		<string>0x0003</string>
@@ -1283,6 +1298,7 @@
 		<string>0x9540</string>
 		<string>0x100F</string>
 		<string>0x6016</string>
+		<string>0x8202</string>
 		<string>0x5800</string>
 		<string>0x5801</string>
 		<string>0x5805</string>
@@ -1426,6 +1442,7 @@
 		<string>appidkey GmbH ID50 -USB</string>
 		<string>appidkey GmbH ID100L-USB-SC-Reader</string>
 		<string>appidkey GmbH ID60-USB</string>
+		<string>Arculus AuthentiKey</string>
 		<string>ArkSigner Connect2Sign</string>
 		<string>ASK-RFID CPL108</string>
 		<string>Athena IDProtect Key v2</string>
@@ -1494,6 +1511,7 @@
 		<string>Cherry KC 1000 SC Z</string>
 		<string>Cherry KC 1000 SC/DI Z</string>
 		<string>Cherry SmartTerminal XX44</string>
+		<string>CHERRY Smart Terminal 1150</string>
 		<string>Cherry GmbH SmartBoard XX1X</string>
 		<string>Cherry GmbH SmartTerminal XX1X</string>
 		<string>Cherry GmbH SmartTerminal ST-1275</string>
@@ -1629,6 +1647,7 @@
 		<string>HID OMNIKEY 5427 CK</string>
 		<string>Hitachi, Ltd. Hitachi Biometric Reader</string>
 		<string>Hitachi, Ltd. Hitachi Portable Biometric Reader</string>
+		<string>HSIC CCID-Reader</string>
 		<string>id3 Semiconductors CL1356A_HID</string>
 		<string>Identiv uTrust 3720 Contactless Reader</string>
 		<string>Identiv uTrust 3721 Contactless Reader</string>
@@ -1709,6 +1728,7 @@
 		<string>Ledger Nano X</string>
 		<string>Ledger Nano S Plus</string>
 		<string>Ledger Stax</string>
+		<string>Ledger Flex</string>
 		<string>Lenovo Lenovo USB Smartcard Keyboard</string>
 		<string>Lenovo Lenovo USB Smartcard Keyboard</string>
 		<string>Lenovo Lenovo Smartcard Wired Keyboard II</string>
@@ -1832,6 +1852,7 @@
 		<string>Spyrus Inc PocketVault P-3X</string>
 		<string>Sunrex HP USB Business Slim Smartcard CCID Keyboard</string>
 		<string>Swissbit Secure USB PU-50n SE/PE</string>
+		<string>SYC USB CCID Reader</string>
 		<string>SYNNIX STD200</string>
 		<string>SYNNIX CL-2100R</string>
 		<string>Sysking MII136C</string>
@@ -1839,10 +1860,12 @@
 		<string>Teridian Semiconductors TSC12xxFV.09</string>
 		<string>Thales Shield M4 Reader</string>
 		<string>Thales RF Reader</string>
+		<string>Thales RF CR2000</string>
 		<string>THURSBY SOFTWARE TSS-PK1</string>
 		<string>Tianyu Smart Card Reader</string>
 		<string>Todos Argos Mini II</string>
 		<string>Todos CX00</string>
+		<string>TOKEN2 FIDO2 Security Key(0026)</string>
 		<string>TOKEN2 Molto2</string>
 		<string>TOKEN2 MFA NFC Reader</string>
 		<string>TOPPAN FORMS CO.,LTD TC63CUT021</string>
@@ -1886,6 +1909,7 @@
 		<string>Alcor Micro AU9540</string>
 		<string>Athena IDProtect Flash</string>
 		<string>ATMEL VaultIC460</string>
+		<string>BHDC Reader-HHD02</string>
 		<string>Broadcom Corp 5880</string>
 		<string>Broadcom Corp 5880</string>
 		<string>Broadcom Corp 5880</string>
