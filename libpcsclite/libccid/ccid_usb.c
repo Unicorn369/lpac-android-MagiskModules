@@ -60,7 +60,7 @@
 /* Using the default libusb context */
 /* does not work for libusb <= 1.0.8 */
 /* #define ctx NULL */
-libusb_context *ctx = NULL;
+static libusb_context *ctx = NULL;
 
 #define CCID_INTERRUPT_SIZE 8
 
@@ -137,11 +137,11 @@ static void Multi_PollingTerminate(struct usbDevice_MultiSlot_Extension *msExt);
 
 static int get_end_points(const struct libusb_interface *usb_interface,
 	_usbDevice *usbdevice);
-bool ccid_check_firmware(struct libusb_device_descriptor *desc);
+static bool ccid_check_firmware(struct libusb_device_descriptor *desc);
 static unsigned int *get_data_rates(unsigned int reader_index,
 	const unsigned char bNumDataRatesSupported);
 
-/* ne need to initialize to 0 since it is static */
+/* no need to initialize to 0 since it is static */
 static _usbDevice usbDevice[CCID_DRIVER_MAX_READERS];
 
 #define PCSCLITE_MANUKEY_NAME "ifdVendorID"
@@ -182,7 +182,7 @@ static struct _bogus_firmware Bogus_firmwares[] = {
 };
 
 /* data rates supported by the secondary slots on the GemCore Pos Pro & SIM Pro */
-unsigned int SerialCustomDataRates[] = { GEMPLUS_CUSTOM_DATA_RATES, 0 };
+static unsigned int SerialCustomDataRates[] = { GEMPLUS_CUSTOM_DATA_RATES, 0 };
 
 /*****************************************************************************
  *
@@ -1187,6 +1187,8 @@ status_t CloseUSB(unsigned int reader_index)
 	/* mark the resource unused */
 	usbDevice[reader_index].dev_handle = NULL;
 	usbDevice[reader_index].interface = 0;
+	usbDevice[reader_index].bus_number = 0;
+	usbDevice[reader_index].device_address = 0;
 
 	close_libusb_if_needed();
 
@@ -1202,11 +1204,13 @@ status_t CloseUSB(unsigned int reader_index)
 status_t DisconnectUSB(unsigned int reader_index)
 {
 	DEBUG_COMM("Disconnect reader");
-	libusb_device_handle * dev_handle = usbDevice[reader_index].dev_handle;
+	int bus_number = usbDevice[reader_index].bus_number;
+	int device_address = usbDevice[reader_index].device_address;
 
 	for (int i=0; i<CCID_DRIVER_MAX_READERS; i++)
 	{
-		if (usbDevice[i].dev_handle == dev_handle)
+		if ((usbDevice[i].bus_number == bus_number)
+			&& (usbDevice[i].device_address == device_address))
 		{
 			DEBUG_COMM2("Disconnect reader: %d", i);
 			usbDevice[i].disconnected = true;
@@ -1556,6 +1560,12 @@ int InterruptRead(int reader_index, int timeout /* in ms */)
 	if (usbDevice[reader_index].multislot_extension != NULL)
 		return Multi_InterruptRead(reader_index, timeout);
 
+	if (usbDevice[reader_index].disconnected)
+	{
+		DEBUG_COMM("Reader disconnected");
+		return IFD_NO_SUCH_DEVICE;
+	}
+
 	DEBUG_PERIODIC3("before (%d), timeout: %d ms", reader_index, timeout);
 
 	transfer = libusb_alloc_transfer(0);
@@ -1620,7 +1630,21 @@ int InterruptRead(int reader_index, int timeout /* in ms */)
 	switch (ret)
 	{
 		case LIBUSB_TRANSFER_COMPLETED:
-			DEBUG_XXD("NotifySlotChange: ", buffer, actual_length);
+			if (actual_length > 0)
+			{
+				switch (buffer[0])
+				{
+					case RDR_to_PC_NotifySlotChange:
+						DEBUG_XXD("NotifySlotChange: ", buffer, actual_length);
+						break;
+					case RDR_to_PC_HardwareError:
+						DEBUG_XXD("HardwareError: ", buffer, actual_length);
+						break;
+					default:
+						DEBUG_XXD("Unrecognized notification: ", buffer, actual_length);
+						break;
+				}
+			}
 			break;
 
 		case LIBUSB_TRANSFER_TIMED_OUT:
@@ -1763,29 +1787,45 @@ static void *Multi_PollingProc(void *p_ext)
 					DEBUG_COMM3("Multi_PollingProc (%d/%d): OK",
 						usbDevice[msExt->reader_index].bus_number,
 						usbDevice[msExt->reader_index].device_address);
-					DEBUG_XXD("NotifySlotChange: ", buffer, actual_length);
-
-					/* log the RDR_to_PC_NotifySlotChange data */
-					slot = 0;
-					for (b=0; b<actual_length-1; b++)
+					if (actual_length > 0)
 					{
-						int s;
-
-						/* 4 slots per byte */
-						for (s=0; s<4; s++)
+						switch (buffer[0])
 						{
-							/* 2 bits per slot */
-							int slot_status = ((buffer[1+b] >> (s*2)) & 3);
-							const char *present, *change;
+							case RDR_to_PC_NotifySlotChange:
+								DEBUG_XXD("NotifySlotChange: ", buffer, actual_length);
 
-							present = (slot_status & 1) ? "present" : "absent";
-							change = (slot_status & 2) ? "status changed" : "no change";
+								/* log the RDR_to_PC_NotifySlotChange data */
+								slot = 0;
+								for (b=0; b<actual_length-1; b++)
+								{
+									int s;
 
-							DEBUG_COMM3("slot %d status: %d",
-								s + slot, slot_status);
-							DEBUG_COMM3("ICC %s, %s", present, change);
+									/* 4 slots per byte */
+									for (s=0; s<4; s++)
+									{
+										/* 2 bits per slot */
+										int slot_status = ((buffer[1+b] >> (s*2)) & 3);
+										const char *present, *change;
+
+										present = (slot_status & 1) ? "present" : "absent";
+										change = (slot_status & 2) ? "status changed" : "no change";
+
+										DEBUG_COMM3("slot %d status: %d",
+											s + slot, slot_status);
+										DEBUG_COMM3("ICC %s, %s", present, change);
+									}
+									slot += 4;
+								}
+								break;
+
+							case RDR_to_PC_HardwareError:
+								DEBUG_XXD("HardwareError: ", buffer, actual_length);
+								break;
+
+							default:
+								DEBUG_XXD("Unrecognized notification: ", buffer, actual_length);
+								break;
 						}
-						slot += 4;
 					}
 					break;
 
@@ -1954,7 +1994,8 @@ again:
 	/* Not stopped */
 	if (status == LIBUSB_TRANSFER_COMPLETED)
 	{
-		if (0 == (buffer[interrupt_byte] & interrupt_mask))
+		if (buffer[0] == RDR_to_PC_NotifySlotChange
+			&& 0 == (buffer[interrupt_byte] & interrupt_mask))
 		{
 			DEBUG_PERIODIC2("Multi_InterruptRead (%d) -- skipped",
 				reader_index);
