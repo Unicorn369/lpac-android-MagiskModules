@@ -10,11 +10,12 @@ LOCAL_MODULE := lpac
 
 LOCAL_MODULE_FILENAME := lpac
 
-LOCAL_CFLAGS := -DLPAC_WITH_HTTP_CURL
+LOCAL_CFLAGS := -DLPAC_WITH_HTTP_CURL -DCJSON_API_VISIBILITY -DCJSON_EXPORT_SYMBOLS -DENABLE_LOCALES
+LOCAL_CFLAGS += -DCJSON_API_VISIBILITY -DCJSON_EXPORT_SYMBOLS -DENABLE_LOCALES
 
 LOCAL_SRC_FILES := \
-    lpac/cjson/cJSON.c \
-    lpac/cjson/cJSON_ex.c \
+    cjson/cJSON.c \
+    lpac/cjson-ext/cjson-ext/cJSON_ex.c \
     \
     lpac/driver/driver.c \
     lpac/driver/apdu/stdio.c \
@@ -49,9 +50,12 @@ LOCAL_SRC_FILES := \
     lpac/src/applet/chip/info.c \
     lpac/src/applet/chip/purge.c \
     \
+    lpac/src/applet/notification/dump.c \
     lpac/src/applet/notification/list.c \
+    lpac/src/applet/notification/notification_common.c \
     lpac/src/applet/notification/process.c \
     lpac/src/applet/notification/remove.c \
+    lpac/src/applet/notification/replay.c \
     \
     lpac/src/applet/profile/delete.c \
     lpac/src/applet/profile/disable.c \
@@ -59,19 +63,25 @@ LOCAL_SRC_FILES := \
     lpac/src/applet/profile/download.c \
     lpac/src/applet/profile/enable.c \
     lpac/src/applet/profile/list.c \
-    lpac/src/applet/profile/nickname.c
+    lpac/src/applet/profile/nickname.c \
+    \
+    lpac/utils/lpac/utils.c
 
 LOCAL_C_INCLUDES += \
     $(LOCAL_PATH)/lpac \
+    $(LOCAL_PATH)/lpac/cjson-ext \
     $(LOCAL_PATH)/lpac/driver \
-    $(LOCAL_PATH)/lpac/src
+    $(LOCAL_PATH)/lpac/euicc \
+    $(LOCAL_PATH)/lpac/src \
+    $(LOCAL_PATH)/lpac/utils
 
 #LOCAL_LDFLAGS := @jni/LDFLAGS.txt
 LOCAL_STATIC_LIBRARIES := curl_static
 
 ifeq ($(LPAC_WITH_APDU_AT),ON)
     LOCAL_CFLAGS += -DLPAC_WITH_APDU_AT
-    LOCAL_SRC_FILES += lpac/driver/apdu/at.c
+    LOCAL_SRC_FILES += lpac/driver/apdu/at_common.c
+    LOCAL_SRC_FILES += lpac/driver/apdu/at_unix.c
 endif
 ifeq ($(LPAC_WITH_APDU_PCSC),ON)
     LOCAL_CFLAGS += -DLPAC_WITH_APDU_PCSC

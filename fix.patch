@@ -1,8 +1,16 @@
-diff --git a/lpac/driver/apdu/gbinder_hidl.c b/lpac/driver/apdu/gbinder_hidl.c
-index 111cbb7..401a9f9 100644
---- a/lpac/driver/apdu/gbinder_hidl.c
-+++ b/lpac/driver/apdu/gbinder_hidl.c
-@@ -172,7 +172,7 @@ static int try_open_slot(int slotId, const uint8_t *aid, uint32_t aid_len)
+diff --git a/driver/apdu/gbinder_hidl.c b/driver/apdu/gbinder_hidl.c
+index 9f5e1cf..7f61ab1 100644
+--- a/driver/apdu/gbinder_hidl.c
++++ b/driver/apdu/gbinder_hidl.c
+@@ -10,6 +10,7 @@
+ #include <stdlib.h>
+ 
+ #define ENV_DEBUG APDU_ENV_NAME(GBINDER, DEBUG)
++#define ENV_UIM_SLOT APDU_ENV_NAME(GBINDER, UIM_SLOT)
+ 
+ #define HIDL_SERVICE_DEVICE "/dev/hwbinder"
+ #define HIDL_SERVICE_IFACE "android.hardware.radio@1.0::IRadio"
+@@ -160,7 +161,7 @@ static int try_open_slot(int slotId, const uint8_t *aid, uint32_t aid_len) {
      }
  
      // Now, try to open the AID
@@ -11,23 +19,22 @@ index 111cbb7..401a9f9 100644
      euicc_hexutil_bin2hex(aid_hex, 255, aid, aid_len);
  
      req = gbinder_client_new_request(client);
-@@ -214,9 +214,12 @@ static int apdu_interface_logic_channel_open(struct euicc_ctx *ctx, const uint8_
+@@ -195,9 +196,11 @@ static int apdu_interface_logic_channel_open(struct euicc_ctx *ctx, const uint8_
      // We only start to use gbinder connection here, because only now can we detect whether
      // a given slot is a valid eSIM slot. This way we can automatically fall back in the case
      // where a device has only one eSIM -- we don't want to force the user to choose in this case.
 -    int res = try_open_slot(1, aid, aid_len);
 -    if (res < 0)
 -        res = try_open_slot(2, aid, aid_len);
-+    int UIM_SLOT = 1;
-+    if (getenv("UIM_SLOT"))
-+        UIM_SLOT = atoi(getenv("UIM_SLOT"));
++    set_deprecated_env_name(ENV_UIM_SLOT, "UIM_SLOT");
++    int UIM_SLOT = getenv_or_default(ENV_UIM_SLOT, (int) 1);
 +    int res = try_open_slot(UIM_SLOT, aid, aid_len);
 +    //if (res < 0)
 +    //    res = try_open_slot(2, aid, aid_len);
      if (res >= 0)
          lastChannelId = res;
      return res;
-@@ -241,7 +244,7 @@ static int apdu_interface_transmit(struct euicc_ctx *ctx, uint8_t **rx, uint32_t
+@@ -221,7 +224,7 @@ static int apdu_interface_transmit(struct euicc_ctx *ctx, uint8_t **rx, uint32_t
      gbinder_local_request_init_writer(req, &writer);
      gbinder_writer_append_int32(&writer, 1000);
  
@@ -35,17 +42,47 @@ index 111cbb7..401a9f9 100644
 +    char tx_hex[4096] = {0};
      euicc_hexutil_bin2hex(tx_hex, 4096, &tx[5], tx_len - 5);
  
-     if (DEBUG)
-diff --git a/lpac/src/main.c b/lpac/src/main.c
-index 1131ec4..199ef47 100644
---- a/lpac/src/main.c
-+++ b/lpac/src/main.c
-@@ -167,7 +167,7 @@ int main(int argc, char **argv)
-     apdu_driver = getenv(ENV_APDU_DRIVER);
-     if (apdu_driver == NULL)
-     {
--        apdu_driver = "pcsc";
-+        apdu_driver = "gbinder_hidl";
-     }
+     if (getenv_or_default(ENV_DEBUG, (bool)false))
+diff --git a/src/applet/version.c b/src/applet/version.c
+index 14bc3f0..9493102 100644
+--- a/src/applet/version.c
++++ b/src/applet/version.c
+@@ -2,7 +2,17 @@
+ #include "main.h"
  
-     http_driver = getenv(ENV_HTTP_DRIVER);
+ #ifndef LPAC_VERSION
+-#    define LPAC_VERSION "v0.0.0-unknown"
++#if defined(__arm__)
++#    define LPAC_VERSION "v2.3.0-android-arm"
++#elif defined(__aarch64__)
++#    define LPAC_VERSION "v2.3.0-android-arm64"
++#elif defined(__i386__)
++#    define LPAC_VERSION "v2.3.0-android-x86"
++#elif defined(__x86_64__)
++#    define LPAC_VERSION "v2.3.0-android-x86_64"
++#else
++#    define LPAC_VERSION "v2.3.0-unknown"
++#endif
+ #endif
+ 
+ static int applet_main(__attribute__((unused)) int argc, __attribute__((unused)) char **argv) {
+diff --git a/src/main.c b/src/main.c
+index 1025901..58525dc 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -159,6 +159,15 @@ int main(int argc, char **argv) {
+ 
+     const char *http_driver = getenv(ENV_HTTP_DRIVER);
+ 
++    if (apdu_driver == NULL)
++    {
++        apdu_driver = "gbinder_hidl";
++    }
++    if (http_driver == NULL)
++    {
++        http_driver = "curl";
++    }
++
+     if (euicc_driver_init(apdu_driver, http_driver)) {
+         return -1;
+     }

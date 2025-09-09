@@ -4,7 +4,7 @@
 ```
 git clone https://github.com/Unicorn369/lpac-android-MagiskModules.git -b sources --recursive
 cd lpac-android-MagiskModules
-patch -p1 < fix.patch
+patch -d lpac -p1 < fix.patch
 cd build
 cp -f version.h ../lpac/src/
 ndk-build -j4
