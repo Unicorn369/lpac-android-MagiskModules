@@ -583,7 +583,7 @@ lpac_menu() {
     if [[ $LPAC_DRIVER_APDU != "pcsc" ]]; then
       echo -e "$Error eSIM读取失败！请指定SIM卡或${Blue_background_prefix}[插拔SIM卡]${Font_color_suffix}"
       echo -e "$Tip 默认读取SIM1，如需读取SIM2请执行：${Red_background_prefix}lpac s2${Font_color_suffix}"
-      echo -e "$Tip 如果你使用的是读卡器，请执行：${Red_background_prefix}lpac d${Font_color_suffix}"
+      echo -e "$Tip 如果你使用的是读卡器，请执行：${Red_background_prefix}lpac c${Font_color_suffix}"
     else
       echo -e "$Error 读卡器读取失败！请检查是否已插入兼容的读卡器，或尝试重新${Blue_background_prefix}[插拔读卡器]${Font_color_suffix}"
     fi

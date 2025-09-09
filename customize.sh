@@ -22,9 +22,9 @@ mv -f "$MODPATH/deps/Info.plist" "$PCSC_DRIVERS/"
 #
 if [ "$ARCH" = "arm" ]; then
   ui_print "- 正在复制ARM架构文件..."
-  mv -f "$MODPATH/deps/arm/jq" "$MODPATH/system/xbin"
-  mv -f "$MODPATH/deps/arm/lpac-hw" "$MODPATH/system/xbin"
-  mv -f "$MODPATH/deps/arm/pcscd" "$MODPATH/system/xbin"
+  mv -f "$MODPATH/deps/arm/jq" "$MODPATH/system/bin"
+  mv -f "$MODPATH/deps/arm/lpac-hw" "$MODPATH/system/bin"
+  mv -f "$MODPATH/deps/arm/pcscd" "$MODPATH/system/bin"
   ui_print "- 正在复制PCSC驱动文件..."
   mv -f "$MODPATH/deps/arm/libccid.so" "$PCSC_DRIVERS/Android/"
 else
