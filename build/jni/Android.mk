@@ -13,14 +13,22 @@ LOCAL_MODULE_FILENAME := lpac
 LOCAL_CFLAGS := -DLPAC_WITH_HTTP_CURL -DCJSON_API_VISIBILITY -DCJSON_EXPORT_SYMBOLS -DENABLE_LOCALES
 LOCAL_CFLAGS += -DCJSON_API_VISIBILITY -DCJSON_EXPORT_SYMBOLS -DENABLE_LOCALES
 
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
+    LOCAL_CFLAGS += -DLPAC_VERSION=\"v2.3.0-android-arm\"
+endif
+ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
+    LOCAL_CFLAGS += -DLPAC_VERSION=\"v2.3.0-android-arm64\"
+endif
+ifeq ($(TARGET_ARCH_ABI),x86)
+    LOCAL_CFLAGS += -DLPAC_VERSION=\"v2.3.0-android-x86\"
+endif
+ifeq ($(TARGET_ARCH_ABI),x86_64)
+    LOCAL_CFLAGS += -DLPAC_VERSION=\"v2.3.0-android-x86_64\"
+endif
+
 LOCAL_SRC_FILES := \
     cjson/cJSON.c \
     lpac/cjson-ext/cjson-ext/cJSON_ex.c \
-    \
-    lpac/driver/driver.c \
-    lpac/driver/apdu/stdio.c \
-    lpac/driver/http/curl.c \
-    lpac/driver/http/stdio.c \
     \
     lpac/euicc/base64.c \
     lpac/euicc/derutil.c \
@@ -34,38 +42,40 @@ LOCAL_SRC_FILES := \
     lpac/euicc/euicc.c \
     lpac/euicc/hexutil.c \
     lpac/euicc/interface.c \
+    lpac/euicc/logger.c \
     lpac/euicc/sha256.c \
     lpac/euicc/tostr.c \
+    \
+    lpac/utils/lpac/utils.c \
+    \
+    lpac/driver/driver.c \
+    lpac/driver/apdu/stdio.c \
+    lpac/driver/http/stdio.c \
+    lpac/driver/http/curl.c \
     \
     lpac/src/applet.c \
     lpac/src/jprint.c \
     lpac/src/main.c \
-    \
     lpac/src/applet/chip.c \
     lpac/src/applet/notification.c \
     lpac/src/applet/profile.c \
     lpac/src/applet/version.c \
-    \
     lpac/src/applet/chip/defaultsmdp.c \
     lpac/src/applet/chip/info.c \
     lpac/src/applet/chip/purge.c \
-    \
     lpac/src/applet/notification/dump.c \
     lpac/src/applet/notification/list.c \
     lpac/src/applet/notification/notification_common.c \
     lpac/src/applet/notification/process.c \
     lpac/src/applet/notification/remove.c \
     lpac/src/applet/notification/replay.c \
-    \
     lpac/src/applet/profile/delete.c \
     lpac/src/applet/profile/disable.c \
     lpac/src/applet/profile/discovery.c \
     lpac/src/applet/profile/download.c \
     lpac/src/applet/profile/enable.c \
     lpac/src/applet/profile/list.c \
-    lpac/src/applet/profile/nickname.c \
-    \
-    lpac/utils/lpac/utils.c
+    lpac/src/applet/profile/nickname.c
 
 LOCAL_C_INCLUDES += \
     $(LOCAL_PATH)/lpac \

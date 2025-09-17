@@ -43,34 +43,11 @@ index 9f5e1cf..7f61ab1 100644
      euicc_hexutil_bin2hex(tx_hex, 4096, &tx[5], tx_len - 5);
  
      if (getenv_or_default(ENV_DEBUG, (bool)false))
-diff --git a/src/applet/version.c b/src/applet/version.c
-index 14bc3f0..9493102 100644
---- a/src/applet/version.c
-+++ b/src/applet/version.c
-@@ -2,7 +2,17 @@
- #include "main.h"
- 
- #ifndef LPAC_VERSION
--#    define LPAC_VERSION "v0.0.0-unknown"
-+#if defined(__arm__)
-+#    define LPAC_VERSION "v2.3.0-android-arm"
-+#elif defined(__aarch64__)
-+#    define LPAC_VERSION "v2.3.0-android-arm64"
-+#elif defined(__i386__)
-+#    define LPAC_VERSION "v2.3.0-android-x86"
-+#elif defined(__x86_64__)
-+#    define LPAC_VERSION "v2.3.0-android-x86_64"
-+#else
-+#    define LPAC_VERSION "v2.3.0-unknown"
-+#endif
- #endif
- 
- static int applet_main(__attribute__((unused)) int argc, __attribute__((unused)) char **argv) {
 diff --git a/src/main.c b/src/main.c
-index 1025901..58525dc 100644
+index 8454e1d..0de20f0 100644
 --- a/src/main.c
 +++ b/src/main.c
-@@ -159,6 +159,15 @@ int main(int argc, char **argv) {
+@@ -183,6 +183,15 @@ int main(int argc, char **argv) {
  
      const char *http_driver = getenv(ENV_HTTP_DRIVER);
  
