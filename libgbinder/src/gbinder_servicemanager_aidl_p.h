@@ -2,6 +2,7 @@
  * Copyright (C) 2018-2021 Jolla Ltd.
  * Copyright (C) 2018-2021 Slava Monich <slava.monich@jolla.com>
  * Copyright (C) 2021 Gary Wang <gary.wang@canonical.com>
+ * Copyright (C) 2026 Jolla Mobile Ltd
  *
  * You may use this file under the terms of BSD license as follows:
  *
@@ -36,10 +37,42 @@
 
 #include "gbinder_servicemanager_aidl.h"
 
+int
+gbinder_servicemanager_aidl_add_service_internal(
+    GBinderServiceManager* manager,
+    const char* name,
+    GBinderLocalObject* obj,
+    const GBinderIpcSyncApi* api,
+    guint32 code)
+    GBINDER_INTERNAL;
+
+GBinderLocalRequest*
+gbinder_servicemanager_aidl2_add_service_req(
+    GBinderClient* client,
+    const char* name,
+    GBinderLocalObject* obj)
+    GBINDER_INTERNAL;
+
 char**
 gbinder_servicemanager_aidl3_list(
     GBinderServiceManager* manager,
     const GBinderIpcSyncApi* api)
+    GBINDER_INTERNAL;
+
+char**
+gbinder_servicemanager_aidl3_list_internal(
+    GBinderServiceManager* manager,
+    const GBinderIpcSyncApi* api,
+    guint32 code)
+    GBINDER_INTERNAL;
+
+GBinderRemoteObject*
+gbinder_servicemanager_aidl3_get_service_internal(
+    GBinderServiceManager* self,
+    const char* name,
+    int* status,
+    const GBinderIpcSyncApi* api,
+    guint32 code)
     GBINDER_INTERNAL;
 
 GBinderRemoteObject*

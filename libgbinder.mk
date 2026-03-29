@@ -35,6 +35,8 @@ LOCAL_SRC_FILES := \
     libgbinder/src/gbinder_servicemanager_aidl2.c \
     libgbinder/src/gbinder_servicemanager_aidl3.c \
     libgbinder/src/gbinder_servicemanager_aidl4.c \
+    libgbinder/src/gbinder_servicemanager_aidl5.c \
+    libgbinder/src/gbinder_servicemanager_aidl6.c \
     libgbinder/src/gbinder_servicemanager_aidl.c \
     libgbinder/src/gbinder_servicemanager.c \
     libgbinder/src/gbinder_servicemanager_hidl.c \
