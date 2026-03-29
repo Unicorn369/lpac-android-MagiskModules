@@ -224,37 +224,6 @@ lpac_profile_delete() {
   fi
 }
 
-lpac_profile_preview() {
-echo -e "请输入LPA代码? [格式为：LPA:1\$AAA\$BBB\$CCC]:"
-read lpa_code
-[ -z "${lpa_code}" ] && echo "你还没有输入LPA代码，请重新输入" && lpac_profile_preview
-  LPA=`echo $lpa_code | sed 's/\"//g' | sed "s/'//g"`
-#
-  LPAC_LOG=`echo n | lpac-hw profile download -p -a $LPA`
-  if echo "$LPAC_LOG" | grep -q "iccid"; then
-    ESIM_JSON_TMP=`echo "$LPAC_LOG" | grep 'iccid":"'`
-    ESIM_NAME_TMP=`echo "$ESIM_JSON_TMP" | jq .payload.data.profileName`
-    ESIM_ICCID_TMP=`echo "$ESIM_JSON_TMP" | jq .payload.data.iccid`
-    ESIM_SPN_TMP=`echo "$ESIM_JSON_TMP" | jq .payload.data.serviceProviderName`
-    echo -e "${Blue_background_prefix}[有效的LPA 读取到以下信息${Font_color_suffix}]"
-    echo -e "${Info_ESIM}: $ESIM_NAME_TMP"
-    echo -e "${Info_SPN}: $ESIM_SPN_TMP"
-    echo -e "${Info_ICCID}: $ESIM_ICCID_TMP"
-    echo -e "————————————"
-  else
-    echo -e "${Error_LPAC} 无法获取LPA信息"
-  fi
-#
-echo -e "是否还需要继续使用? [Y/n] :"
-read yn
-  [ -z "${yn}" ] && yn="y"
-  if [[ $yn == [Yy] ]]; then
-    lpac_profile_preview && exit 1
-  else
-    lpac_menu
-  fi
-}
-
 lpac_profile_nickname() {
   lpac_profile_list
   echo -e "请输入需要修改昵称的ICCID\n如需取消操作请输 [n]:"
@@ -537,7 +506,7 @@ lpac [..]
 
 -> h:    显示此说明界面
 示例：
-    【使用功能】${Blue_background_prefix}lpac a${Font_color_suffix}
+    【使用功能】${Blue_background_prefix}lpac s${Font_color_suffix}
     【重载SIM卡】${Blue_background_prefix}lpac k${Font_color_suffix}
 ——————————————————————
 ${Tip}
@@ -559,12 +528,11 @@ lpac_menu() {
   ${Green_font_prefix} 2.${Font_color_suffix} 切换 eSIM
   ${Green_font_prefix} 3.${Font_color_suffix} 删除 eSIM
 ————————————
-  ${Green_font_prefix} 4.${Font_color_suffix} LPA预览
-  ${Green_font_prefix} 5.${Font_color_suffix} 设置昵称
-  ${Green_font_prefix} 6.${Font_color_suffix} 管理通知
+  ${Green_font_prefix} 4.${Font_color_suffix} 设置昵称
+  ${Green_font_prefix} 5.${Font_color_suffix} 管理通知
 ————————————
-  ${Green_font_prefix} 7.${Font_color_suffix} 重载 SIM卡
-  ${Green_font_prefix} 8.${Font_color_suffix} 重启手机
+  ${Green_font_prefix} 6.${Font_color_suffix} 重载 SIM卡
+  ${Green_font_prefix} 7.${Font_color_suffix} 重启手机
 ————————————
   ${Green_font_prefix} 0.${Font_color_suffix} 退出" && echo
 #
@@ -604,22 +572,19 @@ lpac_menu() {
     lpac_profile_delete
     ;;
   4)
-    lpac_profile_preview
-    ;;
-  5)
     lpac_profile_nickname
     ;;
-  6)
+  5)
     lpac_notification
     ;;
-  7)
+  6)
     if [[ `printenv LPAC_APDU` == "pcsc" ]]; then
       echo -e "${Info_LPAC} 你正在使用读卡器，无须执行此操作！"
     else
       lpac_kill_info
     fi
     ;;
-  8)
+  7)
     lpac_reboot
     ;;
   0)
@@ -628,7 +593,7 @@ lpac_menu() {
     exit
     ;;
   *)
-    echo "请输入正确数字 [0-8]"
+    echo "请输入正确数字 [0-7]"
     ;;
   esac
 }
@@ -638,7 +603,7 @@ if [[ $UID == "0" || $USER_ID == "0" || `id -u` == "0" ]]; then
   s)
     lpac_profile_switch
     ;;
-  s1|sim)
+  s1|sim|sim1)
     lpac_menu
     ;;
   s2|sim2)
