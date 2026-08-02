@@ -3,8 +3,6 @@
  * Copyright (C) 2018-2024 Slava Monich <slava@monich.com>
  * Copyright (C) 2026 Jolla Mobile Ltd
  *
- * You may use this file under the terms of BSD license as follows:
- *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -62,7 +60,7 @@ typedef struct gbinder_servicemanager_class {
     const char* iface;
     const char* default_device;
 
-    /* Methods (synchronous) */
+    /* Methods (synchronous, may be invoked on a worker thread) */
     char** (*list)(GBinderServiceManager* self, const GBinderIpcSyncApi* api);
     GBinderRemoteObject* (*get_service)(GBinderServiceManager* self,
         const char* name, int* status, const GBinderIpcSyncApi* api);
@@ -100,6 +98,11 @@ gbinder_servicemanager_service_registered(
     const char* name)
     GBINDER_INTERNAL;
 
+void
+gbinder_servicemanager_class_common_init(
+    GBinderServiceManagerClass* klass)
+    GBINDER_INTERNAL;
+
 /* Declared for unit tests */
 void
 gbinder_servicemanager_exit(
@@ -112,7 +115,6 @@ gbinder_servicemanager_exit(
 GType gbinder_servicemanager_aidl_get_type(void) GBINDER_INTERNAL;
 GType gbinder_servicemanager_aidl2_get_type(void) GBINDER_INTERNAL;
 GType gbinder_servicemanager_aidl3_get_type(void) GBINDER_INTERNAL;
-GType gbinder_servicemanager_aidl4_get_type(void) GBINDER_INTERNAL;
 GType gbinder_servicemanager_aidl5_get_type(void) GBINDER_INTERNAL;
 GType gbinder_servicemanager_aidl6_get_type(void) GBINDER_INTERNAL;
 GType gbinder_servicemanager_hidl_get_type(void) GBINDER_INTERNAL;

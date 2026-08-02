@@ -3,8 +3,6 @@
  * Copyright (C) 2020 Slava Monich <slava.monich@jolla.com>
  * Copyright (C) 2026 Jolla Mobile Ltd
  *
- * You may use this file under the terms of BSD license as follows:
- *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -45,8 +43,6 @@ G_DEFINE_TYPE(GBinderServiceManagerAidl2,
     gbinder_servicemanager_aidl2,
     GBINDER_TYPE_SERVICEMANAGER_AIDL)
 
-#define PARENT_CLASS gbinder_servicemanager_aidl2_parent_class
-
 static
 GBinderLocalRequest*
 gbinder_servicemanager_aidl2_list_services_req(
@@ -60,6 +56,7 @@ gbinder_servicemanager_aidl2_list_services_req(
     return req;
 }
 
+static
 GBinderLocalRequest*
 gbinder_servicemanager_aidl2_add_service_req(
     GBinderClient* client,
@@ -85,10 +82,13 @@ gbinder_servicemanager_aidl2_init(
 static
 void
 gbinder_servicemanager_aidl2_class_init(
-    GBinderServiceManagerAidl2Class* cls)
+    GBinderServiceManagerAidl2Class* klass)
 {
-    cls->list_services_req = gbinder_servicemanager_aidl2_list_services_req;
-    cls->add_service_req = gbinder_servicemanager_aidl2_add_service_req;
+    GBinderServiceManagerClass* manager = GBINDER_SERVICEMANAGER_CLASS(klass);
+
+    gbinder_servicemanager_class_common_init(manager);
+    klass->list_services_req = gbinder_servicemanager_aidl2_list_services_req;
+    klass->add_service_req = gbinder_servicemanager_aidl2_add_service_req;
 }
 
 /*

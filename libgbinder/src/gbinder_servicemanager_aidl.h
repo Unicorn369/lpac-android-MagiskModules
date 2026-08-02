@@ -3,8 +3,6 @@
  * Copyright (C) 2020-2022 Slava Monich <slava.monich@jolla.com>
  * Copyright (C) 2026 Jolla Mobile Ltd
  *
- * You may use this file under the terms of BSD license as follows:
- *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -44,6 +42,16 @@ typedef struct gbinder_servicemanager_aidl {
 
 typedef struct gbinder_servicemanager_aidl_class {
     GBinderServiceManagerClass parent;
+
+    /* Google devs feel free to insert new IServiceManager methods in
+     * the middle (probably just because it looks nice) which shifts
+     * the transaction codes and makes this headache for us. */
+    guint32 check_service_transaction;
+    guint32 add_service_transaction;
+    guint32 list_services_transaction;
+    guint32 register_for_notifications_transaction;
+    guint32 unregister_for_notifications_transaction;
+
     GBinderLocalRequest* (*list_services_req)
         (GBinderClient* client, gint32 index);
     GBinderLocalRequest* (*add_service_req)
@@ -56,29 +64,13 @@ typedef struct gbinder_servicemanager_aidl_class {
     G_TYPE_INSTANCE_GET_CLASS((obj), GBINDER_TYPE_SERVICEMANAGER_AIDL, \
     GBinderServiceManagerAidlClass)
 
-enum gbinder_servicemanager_aidl_calls {
-    GET_SERVICE_TRANSACTION = GBINDER_FIRST_CALL_TRANSACTION,
-    CHECK_SERVICE_TRANSACTION,
-    ADD_SERVICE_TRANSACTION,
-    LIST_SERVICES_TRANSACTION
-};
-
-enum gbinder_servicemanager_aidl5_calls {
-    AIDL5_GET_SERVICE_TRANSACTION = GBINDER_FIRST_CALL_TRANSACTION,
-    AIDL5_GET_SERVICE2_TRANSACTION,
-    AIDL5_CHECK_SERVICE_TRANSACTION,
-    AIDL5_ADD_SERVICE_TRANSACTION,
-    AIDL5_LIST_SERVICES_TRANSACTION
-};
-
-enum gbinder_servicemanager_aidl6_calls {
-    AIDL6_GET_SERVICE_TRANSACTION = GBINDER_FIRST_CALL_TRANSACTION,
-    AIDL6_GET_SERVICE2_TRANSACTION,
-    AIDL6_CHECK_SERVICE_TRANSACTION,
-    AIDL6_CHECK_SERVICE2_TRANSACTION,
-    AIDL6_ADD_SERVICE_TRANSACTION,
-    AIDL6_LIST_SERVICES_TRANSACTION
-};
+#define GBINDER_TYPE_SERVICEMANAGER_AIDL2 \
+    gbinder_servicemanager_aidl2_get_type()
+#define GBINDER_TYPE_SERVICEMANAGER_AIDL3 \
+    gbinder_servicemanager_aidl3_get_type()
+/* AIDL4 is missing for historical reasons */
+#define GBINDER_TYPE_SERVICEMANAGER_AIDL5 \
+    gbinder_servicemanager_aidl5_get_type()
 
 #define DUMP_FLAG_PRIORITY_DEFAULT (0x08)
 #define DUMP_FLAG_PRIORITY_ALL     (0x0f)

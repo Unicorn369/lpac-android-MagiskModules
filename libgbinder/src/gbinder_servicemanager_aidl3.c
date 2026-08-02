@@ -5,8 +5,6 @@
  * Copyright (C) 2021 Madhushan Nishantha <jlmadushan@gmail.com>
  * Copyright (C) 2026 Jolla Mobile Ltd
  *
- * You may use this file under the terms of BSD license as follows:
- *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -33,9 +31,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "gbinder_servicemanager_aidl_p.h"
+#include "gbinder_servicemanager_aidl.h"
 #include "gbinder_client_p.h"
-#include "gbinder_reader_p.h"
 
 #include <gbinder_local_request.h>
 #include <gbinder_remote_reply.h>
@@ -47,27 +44,28 @@ typedef GBinderServiceManagerAidlClass GBinderServiceManagerAidl3Class;
 
 G_DEFINE_TYPE(GBinderServiceManagerAidl3,
     gbinder_servicemanager_aidl3,
-    GBINDER_TYPE_SERVICEMANAGER_AIDL)
+    GBINDER_TYPE_SERVICEMANAGER_AIDL2)
 
-#define PARENT_CLASS gbinder_servicemanager_aidl3_parent_class
+#define GET_THIS_CLASS(obj) GBINDER_SERVICEMANAGER_AIDL_GET_CLASS(obj)
 
+static
 GBinderRemoteObject*
-gbinder_servicemanager_aidl3_get_service_internal(
-    GBinderServiceManager* self,
+gbinder_servicemanager_aidl3_get_service(
+    GBinderServiceManager* manager,
     const char* name,
     int* status,
-    const GBinderIpcSyncApi* api,
-    guint32 code)
+    const GBinderIpcSyncApi* api)
 {
-    GBinderClient* client = self->client;
+    GBinderClient* client = manager->client;
     GBinderLocalRequest* req = gbinder_client_new_request(client);
     GBinderRemoteObject* obj;
     GBinderRemoteReply* reply;
     GBinderReader reader;
+    GBinderServiceManagerAidlClass* klass = GET_THIS_CLASS(manager);
 
     gbinder_local_request_append_string16(req, name);
     reply = gbinder_client_transact_sync_reply2(client,
-        code, req, status, api);
+        klass->check_service_transaction, req, status, api);
 
     gbinder_remote_reply_init_reader(reply, &reader);
     gbinder_reader_read_int32(&reader, NULL /* status? */);
@@ -78,27 +76,17 @@ gbinder_servicemanager_aidl3_get_service_internal(
     return obj;
 }
 
-GBinderRemoteObject*
-gbinder_servicemanager_aidl3_get_service(
-    GBinderServiceManager* self,
-    const char* name,
-    int* status,
-    const GBinderIpcSyncApi* api)
-{
-    return gbinder_servicemanager_aidl3_get_service_internal(self, name,
-        status, api, CHECK_SERVICE_TRANSACTION);
-}
-
+static
 char**
-gbinder_servicemanager_aidl3_list_internal(
+gbinder_servicemanager_aidl3_list(
     GBinderServiceManager* manager,
-    const GBinderIpcSyncApi* api,
-    guint32 code)
+    const GBinderIpcSyncApi* api)
 {
     GPtrArray* list = g_ptr_array_new();
     GBinderClient* client = manager->client;
     GBinderRemoteReply* reply;
     GBinderLocalRequest* req = gbinder_client_new_request(client);
+    GBinderServiceManagerAidlClass* klass = GET_THIS_CLASS(manager);
 
     /*
      * Starting from Android 11, no `index` field is required but
@@ -108,7 +96,7 @@ gbinder_servicemanager_aidl3_list_internal(
      */
     gbinder_local_request_append_int32(req, DUMP_FLAG_PRIORITY_ALL);
     reply = gbinder_client_transact_sync_reply2(client,
-        code, req, NULL, api);
+        klass->list_services_transaction, req, NULL, api);
 
     if (reply) {
         GBinderReader reader;
@@ -132,15 +120,6 @@ gbinder_servicemanager_aidl3_list_internal(
     return (char**)g_ptr_array_free(list, FALSE);
 }
 
-char**
-gbinder_servicemanager_aidl3_list(
-    GBinderServiceManager* manager,
-    const GBinderIpcSyncApi* api)
-{
-    return gbinder_servicemanager_aidl3_list_internal(manager, api,
-        LIST_SERVICES_TRANSACTION);
-}
-
 static
 void
 gbinder_servicemanager_aidl3_init(
@@ -155,7 +134,7 @@ gbinder_servicemanager_aidl3_class_init(
 {
     GBinderServiceManagerClass* manager = GBINDER_SERVICEMANAGER_CLASS(klass);
 
-    klass->add_service_req = gbinder_servicemanager_aidl2_add_service_req;
+    gbinder_servicemanager_class_common_init(manager);
     manager->list = gbinder_servicemanager_aidl3_list;
     manager->get_service = gbinder_servicemanager_aidl3_get_service;
 }

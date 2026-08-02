@@ -1,7 +1,7 @@
 /*
+ * Copyright (C) 2018-2026 Slava Monich <slava@monich.com>
  * Copyright (C) 2025 Jolla Mobile Ltd.
  * Copyright (C) 2018-2022 Jolla Ltd.
- * Copyright (C) 2018-2025 Slava Monich <slava@monich.com>
  *
  * You may use this file under the terms of BSD license as follows:
  *
@@ -38,6 +38,7 @@
 #include "gbinder_config.h"
 #include "gbinder_log.h"
 #include "gbinder_local_object_p.h"
+#include "gbinder_remote_object_p.h"
 
 #include <gutil_misc.h>
 
@@ -86,56 +87,101 @@ static const GBinderRpcProtocol* gbinder_rpc_protocol_default =
  * Common AIDL protocol
  *==========================================================================*/
 
+static
+void
+gbinder_rpc_protocol_aidl_write_fmq_grantor_descriptor(
+    GBinderWriter* writer,
+    const GBinderFmqGrantorDescriptor* grantor)
+{
+    GBinderWriter parcelable;
+
+    /*
+     * package android.hardware.common.fmq;
+     * parcelable GrantorDescriptor {
+     *   int fdIndex;
+     *   int offset;
+     *   long extent;
+     * }
+     */
+    gbinder_writer_start_parcelable(writer, &parcelable);
+    gbinder_writer_append_int32(&parcelable, grantor->fd_index);
+    gbinder_writer_append_int32(&parcelable, grantor->offset);
+    gbinder_writer_append_int64(&parcelable, grantor->extent);
+    gbinder_writer_finish_parcelable(&parcelable);
+}
+
+static
+void
+gbinder_rpc_protocol_aidl_write_fds(
+    GBinderWriter* writer,
+    const GBinderFds* fds)
+{
+    GBinderWriter parcelable;
+    guint i;
+
+    /*
+     * package android.hardware.common;
+     * parcelable NativeHandle {
+     *   ParcelFileDescriptor[] fds;
+     *   int[] ints;
+     * }
+     */
+    gbinder_writer_start_parcelable(writer, &parcelable);
+
+    /* fds */
+    gbinder_writer_append_int32(&parcelable, fds->num_fds);
+    for (i = 0; i < fds->num_fds; i++) {
+        gbinder_writer_append_int32(&parcelable, 1);
+        gbinder_writer_append_int32(&parcelable, 0);
+        gbinder_writer_append_fd(&parcelable, gbinder_fds_get_fd(fds, i));
+    }
+
+    /* ints */
+    gbinder_writer_append_int32(&parcelable, fds->num_ints);
+    for (i = 0; i < fds->num_ints; i++) {
+        gbinder_writer_append_int32(&parcelable,
+            gbinder_fds_get_fd(fds, fds->num_fds + i));
+    }
+    gbinder_writer_finish_parcelable(&parcelable);
+}
+
+static
 void
 gbinder_rpc_protocol_aidl_write_fmq_descriptor(
-    GBinderWriter* writer, const GBinderFmq* queue)
+    GBinderWriter* writer,
+    const GBinderFmq* queue)
 {
-    GBinderMQDescriptor* desc = gbinder_fmq_get_descriptor(queue);
+    if (queue) {
+        const GBinderMQDescriptor* desc = gbinder_fmq_get_descriptor(queue);
+        const GBinderFmqGrantorDescriptor* grantors = desc->grantors.data.ptr;
+        GBinderWriter parcelable;
+        guint i;
 
-    gssize size_offset;
-    int i;
+        /*
+         * package android.hardware.common.fmq;
+         * parcelable MQDescriptor<T, Flavor> {
+         *   android.hardware.common.fmq.GrantorDescriptor[] grantors;
+         *   android.hardware.common.NativeHandle handle;
+         *   int quantum;
+         *   int flags;
+         * }
+         */
+        gbinder_writer_start_parcelable(writer, &parcelable);
 
-    gssize fmq_size_offset = gbinder_writer_append_parcelable_start(writer,
-        queue != NULL);
+        /* grantors */
+        gbinder_writer_append_int32(&parcelable, desc->grantors.count);
+        for (i = 0; i < desc->grantors.count; i++) {
+            gbinder_rpc_protocol_aidl_write_fmq_grantor_descriptor
+                (&parcelable, grantors + i);
+        }
 
-    /* Write the grantors */
-    GBinderFmqGrantorDescriptor *grantors =
-        (GBinderFmqGrantorDescriptor *)desc->grantors.data.ptr;
-
-    gbinder_writer_append_int32(writer, desc->grantors.count);
-    for (i = 0; i < desc->grantors.count; i++) {
-        gssize grantors_size_offset =
-            gbinder_writer_append_parcelable_start(writer, TRUE);
-        gbinder_writer_append_int32(writer, grantors[i].fd_index);
-        gbinder_writer_append_int32(writer, grantors[i].offset);
-        gbinder_writer_append_int64(writer, grantors[i].extent);
-        gbinder_writer_append_parcelable_finish(writer, grantors_size_offset);
+        gbinder_rpc_protocol_aidl_write_fds(&parcelable, desc->data.fds);
+        gbinder_writer_append_int32(&parcelable, desc->quantum);
+        gbinder_writer_append_int32(&parcelable, desc->flags);
+        gbinder_writer_finish_parcelable(&parcelable);
+    } else {
+        gbinder_writer_append_null_parcelable(writer);
     }
-
-    /* Write the native handle */
-    size_offset = gbinder_writer_append_parcelable_start(writer, TRUE);
-
-    gbinder_writer_append_int32(writer, desc->data.fds->num_fds);
-    for (i = 0; i < desc->data.fds->num_fds; i++) {
-        gbinder_writer_append_int32(writer, 1);
-        gbinder_writer_append_int32(writer, 0);
-        gbinder_writer_append_fd(writer, gbinder_fds_get_fd(desc->data.fds, i));
-    }
-    gbinder_writer_append_int32(writer, desc->data.fds->num_ints);
-    for (i = 0; i < desc->data.fds->num_ints; i++) {
-        gbinder_writer_append_int32(writer, gbinder_fds_get_fd(desc->data.fds,
-            desc->data.fds->num_fds + i));
-    }
-
-    gbinder_writer_append_parcelable_finish(writer, size_offset);
-
-    /* Write the quantum */
-    gbinder_writer_append_int32(writer, desc->quantum);
-
-    /* Write the flags */
-    gbinder_writer_append_int32(writer, desc->flags);
-
-    gbinder_writer_append_parcelable_finish(writer, fmq_size_offset);
 }
 
 /*==========================================================================*
@@ -281,13 +327,21 @@ static
 void
 gbinder_rpc_protocol_aidl3_finish_flatten_binder(
     void* out,
-    GBinderLocalObject* obj)
+    GBINDER_STABILITY_LEVEL stability)
 {
-    if (G_LIKELY(obj)) {
-        *(guint32*)out = obj->stability;
-    } else {
-        *(guint32*)out = GBINDER_STABILITY_UNDECLARED;
-    }
+    *(guint32*)out = stability;
+}
+
+static
+void
+gbinder_rpc_protocol_aidl3_finish_unflatten_binder(
+    const void* in,
+    GBinderRemoteObject* obj)
+{
+    guint32 stability;
+
+    memcpy(&stability, in, sizeof(stability));
+    obj->stability = stability;
 }
 
 static const GBinderRpcProtocol gbinder_rpc_protocol_aidl3 = {
@@ -298,6 +352,8 @@ static const GBinderRpcProtocol gbinder_rpc_protocol_aidl3 = {
     .read_rpc_header = gbinder_rpc_protocol_aidl3_read_rpc_header,
     .flat_binder_object_extra = 4,
     .finish_flatten_binder = gbinder_rpc_protocol_aidl3_finish_flatten_binder,
+    .finish_unflatten_binder =
+        gbinder_rpc_protocol_aidl3_finish_unflatten_binder,
     .write_fmq_descriptor = gbinder_rpc_protocol_aidl_write_fmq_descriptor,
 };
 
@@ -318,15 +374,27 @@ static
 void
 gbinder_rpc_protocol_aidl4_finish_flatten_binder(
     void* out,
-    GBinderLocalObject* obj)
+    GBINDER_STABILITY_LEVEL stability)
 {
     struct stability_category cat = {
         .binder_wire_format_version = BINDER_WIRE_FORMAT_VERSION_AIDL4,
         .reserved = { 0, 0, },
-        .stability_level = obj ? obj->stability : GBINDER_STABILITY_UNDECLARED,
+        .stability_level = stability,
     };
 
     memcpy(out, &cat, sizeof(cat));
+}
+
+static
+void
+gbinder_rpc_protocol_aidl4_finish_unflatten_binder(
+    const void* in,
+    GBinderRemoteObject* obj)
+{
+    struct stability_category cat;
+
+    memcpy(&cat, in, sizeof(cat));
+    obj->stability = cat.stability_level;
 }
 
 static const GBinderRpcProtocol gbinder_rpc_protocol_aidl4 = {
@@ -337,6 +405,8 @@ static const GBinderRpcProtocol gbinder_rpc_protocol_aidl4 = {
     .read_rpc_header = gbinder_rpc_protocol_aidl3_read_rpc_header,
     .flat_binder_object_extra = 4,
     .finish_flatten_binder = gbinder_rpc_protocol_aidl4_finish_flatten_binder,
+    .finish_unflatten_binder =
+        gbinder_rpc_protocol_aidl4_finish_unflatten_binder,
     .write_fmq_descriptor = gbinder_rpc_protocol_aidl_write_fmq_descriptor,
 };
 
@@ -378,7 +448,8 @@ gbinder_rpc_protocol_hidl_read_rpc_header(
 
 void
 gbinder_rpc_protocol_hidl_write_fmq_descriptor(
-    GBinderWriter* writer, const GBinderFmq* queue)
+    GBinderWriter* writer,
+    const GBinderFmq* queue)
 {
     GBinderParent parent;
     GBinderMQDescriptor* desc = gbinder_fmq_get_descriptor(queue);

@@ -1,6 +1,6 @@
 /*
+ * Copyright (C) 2018-2026 Slava Monich <slava@monich.com>
  * Copyright (C) 2018-2022 Jolla Ltd.
- * Copyright (C) 2018-2023 Slava Monich <slava@monich.com>
  *
  * You may use this file under the terms of BSD license as follows:
  *
@@ -1796,9 +1796,8 @@ const GBinderIpcSyncApi gbinder_ipc_sync_worker = {
  * GBinderIpcSyncApi for the main thread
  *==========================================================================*/
 
-static
 GBinderRemoteReply*
-gbinder_ipc_transact_sync_reply(
+gbinder_ipc_transact_sync_reply_main(
     GBinderIpc* self,
     guint32 handle,
     guint32 code,
@@ -1824,9 +1823,8 @@ gbinder_ipc_transact_sync_reply(
     return NULL;
 }
 
-static
 int
-gbinder_ipc_transact_sync_oneway(
+gbinder_ipc_transact_sync_oneway_main(
     GBinderIpc* self,
     guint32 handle,
     guint32 code,
@@ -1843,8 +1841,8 @@ gbinder_ipc_transact_sync_oneway(
 }
 
 const GBinderIpcSyncApi gbinder_ipc_sync_main = {
-    .sync_reply = gbinder_ipc_transact_sync_reply,
-    .sync_oneway = gbinder_ipc_transact_sync_oneway
+    .sync_reply = gbinder_ipc_transact_sync_reply_main,
+    .sync_oneway = gbinder_ipc_transact_sync_oneway_main
 };
 
 /*==========================================================================*
@@ -2247,6 +2245,7 @@ gbinder_ipc_exit()
         for (l = local_objs; l; l = l->next) {
             GBinderLocalObject* obj = GBINDER_LOCAL_OBJECT(l->data);
 
+            GVERBOSE_("%p has %d strong ref(s)", obj, obj->strong_refs);
             while (obj->strong_refs > 0) {
                 obj->strong_refs--;
                 gbinder_local_object_unref(obj);

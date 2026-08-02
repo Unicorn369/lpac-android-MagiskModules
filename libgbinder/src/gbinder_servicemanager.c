@@ -3,8 +3,6 @@
  * Copyright (C) 2018-2024 Slava Monich <slava@monich.com>
  * Copyright (C) 2026 Jolla Mobile Ltd
  *
- * You may use this file under the terms of BSD license as follows:
- *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -82,7 +80,7 @@ static const GBinderServiceManagerType gbinder_servicemanager_types[] = {
     { "aidl", gbinder_servicemanager_aidl_get_type },
     { "aidl2", gbinder_servicemanager_aidl2_get_type },
     { "aidl3", gbinder_servicemanager_aidl3_get_type },
-    { "aidl4", gbinder_servicemanager_aidl4_get_type },
+    { "aidl4", gbinder_servicemanager_aidl3_get_type },
     { "aidl5", gbinder_servicemanager_aidl5_get_type },
     { "aidl6", gbinder_servicemanager_aidl6_get_type },
     { "hidl", gbinder_servicemanager_hidl_get_type }
@@ -1126,6 +1124,24 @@ gbinder_servicemanager_finalize(
     G_OBJECT_CLASS(PARENT_CLASS)->finalize(object);
 }
 
+void
+gbinder_servicemanager_class_common_init(
+    GBinderServiceManagerClass* klass)
+{
+    /*
+     * Every subclass must call this function in its class init routine,
+     * else they may end up sharing the table. Even though the base class
+     * is abstract and can't be directly instantiated (and therefore its
+     * table remains null), AIDL classes form a hierarchy and may actually
+     * end up sharing it.
+     *
+     * It's also a good idea to individually init the mutex for every
+     * subclass, instead of assuming that memcpy would do the right thing.
+     */
+    g_mutex_init(&klass->mutex);
+    klass->table = NULL;
+}
+
 static
 void
 gbinder_servicemanager_class_init(
@@ -1134,7 +1150,7 @@ gbinder_servicemanager_class_init(
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
     GType type = G_OBJECT_CLASS_TYPE(klass);
 
-    g_mutex_init(&klass->mutex);
+    gbinder_servicemanager_class_common_init(klass);
     g_type_class_add_private(klass, sizeof(GBinderServiceManagerPriv));
     object_class->dispose = gbinder_servicemanager_dispose;
     object_class->finalize = gbinder_servicemanager_finalize;

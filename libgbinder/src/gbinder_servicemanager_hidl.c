@@ -446,6 +446,8 @@ void
 gbinder_servicemanager_hidl_class_init(
     GBinderServiceManagerHidlClass* klass)
 {
+    gbinder_servicemanager_class_common_init(klass);
+
     klass->iface = SERVICEMANAGER_HIDL_IFACE;
     klass->default_device = GBINDER_DEFAULT_HWBINDER;
 
