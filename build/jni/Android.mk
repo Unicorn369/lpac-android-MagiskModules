@@ -4,6 +4,7 @@ COMMON_PARENT_DIR := $(call my-dir)/../..
 LPAC_WITH_APDU_AT ?= ON
 LPAC_WITH_APDU_PCSC ?= ON
 LPAC_WITH_APDU_GBINDER ?= ON
+LPAC_WITH_APDU_QMI ?= ON
 #################################
 include $(CLEAR_VARS)
 LOCAL_MODULE := lpac
@@ -103,6 +104,15 @@ ifeq ($(LPAC_WITH_APDU_GBINDER),ON)
     LOCAL_SRC_FILES += lpac/driver/apdu/gbinder_hidl.c
     LOCAL_STATIC_LIBRARIES += libgbinder
 endif
+ifeq ($(LPAC_WITH_APDU_QMI),ON)
+    LOCAL_CFLAGS += -DLPAC_WITH_APDU_QMI -DLPAC_WITH_APDU_QMI_QRTR
+    LOCAL_SRC_FILES += \
+        lpac/driver/apdu/qmi_helpers.c \
+        lpac/driver/apdu/qmi_common.c \
+        lpac/driver/apdu/qmi.c \
+        lpac/driver/apdu/qmi_qrtr.c
+    LOCAL_STATIC_LIBRARIES += libqmi-glib libqrtr-glib
+endif
 
 include $(BUILD_EXECUTABLE)
 ##############################
@@ -111,6 +121,10 @@ ifeq ($(LPAC_WITH_APDU_PCSC),ON)
 endif
 ifeq ($(LPAC_WITH_APDU_GBINDER),ON)
     include $(COMMON_PARENT_DIR)/libgbinder.mk
+endif
+ifeq ($(LPAC_WITH_APDU_QMI),ON)
+    include $(COMMON_PARENT_DIR)/libqmi-glib.mk
+    include $(COMMON_PARENT_DIR)/libqrtr-glib.mk
 endif
 
 $(call import-add-path,$(LOCAL_PATH))
