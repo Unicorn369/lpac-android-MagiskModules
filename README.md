@@ -24,3 +24,8 @@ ndk-build LPAC_WITH_APDU_PCSC=ON
 ```
 ndk-build LPAC_WITH_APDU_AT=OFF
 ```
+
+禁用`QMI`
+```
+ndk-build LPAC_WITH_APDU_QMI=OFF
+```
